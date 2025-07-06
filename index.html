@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Mở Ô Hình Ảnh Cho Bé</title>
+  <!-- 
+  ===== HƯỚNG DẪN THÊM CHỦ ĐỀ MỚI =====
+  
+  1. Thêm chủ đề mới vào TOPICS_CONFIG:
+     - Tạo key mới (vd: 'chu_de_moi')
+     - Thêm name (tên hiển thị với emoji)
+     - Thêm color (màu nền nút)
+     - Thêm mảng questions với câu hỏi
+  
+  2. Thêm SVG cho hình ảnh vào createSVGImage():
+     - Tạo SVG template cho từng img ID
+     - Kích thước chuẩn: 200x200px
+  
+  3. Không cần sửa HTML hay các hàm khác!
+     Nút và logic sẽ tự động được tạo.
+  
+  Ví dụ thêm chủ đề "Thể thao":
+  the_thao: {
+    name: '⚽ Thể thao',
+    color: '#ff6b6b',
+    questions: [
+      { img: "football", q: "Quả bóng này dùng để chơi gì?", options: ["A. Bóng rổ", "B. Bóng đá", "C. Tennis", "D. Cầu lông"], a: "B" }
+    ]
+  }
+  -->
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background-color: #f0f8ff; }
+    h1 { color: #2c3e50; }
+    .grid { display: grid; grid-template-columns: repeat(6, 90px); gap: 10px; justify-content: center; margin-top: 20px; }
+    .cell {
+      width: 90px;
+      height: 90px;
+      background-color: #3498db;
+      color: white;
+      font-weight: bold;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .cell:hover {
+      transform: scale(1.1);
+      background-color: #2980b9;
+    }
+    .cell.disabled {
+      background-color: #95a5a6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .cell.disabled:hover {
+      transform: none;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: linear-gradient(135deg, #ffffff, #f8f9fa);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      width: 80%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      animation: modalSlide 0.3s ease-out;
+      border: 3px solid #3498db;
+      position: relative;
+    }
+    .modal-content::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71, #3498db, #9b59b6);
+      border-radius: 20px 20px 0 0;
+    }
+    @keyframes modalSlide {
+      from { transform: scale(0.7); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-content #questionImage {
+      max-width: 320px;
+      max-height: 320px;
+      margin: 0 auto 25px auto;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      display: block;
+      border: 4px solid #e74c3c;
+      background: linear-gradient(135deg, #fff, #f8f9fa);
+      padding: 15px;
+      position: relative;
+    }
+    .modal-content #questionImage::before {
+      content: "🖼️";
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #e74c3c;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
+    }
+    .modal-content #questionImage svg {
+      width: 100%;
+      height: auto;
+      max-height: 300px;
+      border-radius: 15px;
+    }
+    .modal-content #questionText {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1a252f;
+      margin: 25px 0 35px 0;
+      line-height: 1.4;
+      text-align: center;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      padding: 20px 25px;
+      border-radius: 15px;
+      border: 3px solid #3498db;
+      box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+      position: relative;
+    }
+    .modal-content #questionText::before {
+      content: "❓";
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 24px;
+    }
+    .modal-content #optionsContainer {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 40px 0 30px 0;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 25px;
+      background: linear-gradient(135deg, #ffffff, #f8f9fa);
+      border-radius: 20px;
+      border: 2px solid #bdc3c7;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .modal-content #optionsContainer::before {
+      content: "📝 Chọn đáp án đúng:";
+      position: absolute;
+      top: -15px;
+      left: 20px;
+      background: #3498db;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+    }
+    .modal-content input {
+      font-size: 20px;
+      padding: 12px;
+      border: 2px solid #3498db;
+      border-radius: 10px;
+      width: 250px;
+      text-align: center;
+    }
+    .modal-content button {
+      font-size: 18px;
+      padding: 12px 25px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: background 0.3s;
+    }
+    .modal-content button:hover {
+      background: #2980b9;
+    }
+    .modal-content p {
+      font-size: 18px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin: 15px 0;
+    }
+    .option-btn {
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 18px 20px;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: left;
+      border: 3px solid #bdc3c7;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.9);
+      letter-spacing: 0.3px;
+    }
+    .option-btn.option-a {
+      background: linear-gradient(135deg, #ffcdd2, #ffebee);
+      border-color: #d81b60;
+      color: #660e2e;
+      box-shadow: 0 2px 4px rgba(216, 27, 96, 0.2);
+    }
+    .option-btn.option-b {
+      background: linear-gradient(135deg, #c8e6c9, #e8f5e8);
+      border-color: #388e3c;
+      color: #1b5e20;
+      box-shadow: 0 2px 4px rgba(56, 142, 60, 0.2);
+    }
+    .option-btn.option-c {
+      background: linear-gradient(135deg, #bbdefb, #e3f2fd);
+      border-color: #1976d2;
+      color: #0d47a1;
+      box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
+    }
+    .option-btn.option-d {
+      background: linear-gradient(135deg, #ffcc80, #fff3e0);
+      border-color: #f57c00;
+      color: #bf360c;
+      box-shadow: 0 2px 4px rgba(245, 124, 0, 0.2);
+    }
+    .option-btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+      font-weight: bold;
+      border-width: 4px;
+    }
+    .option-btn.option-a:hover {
+      background: linear-gradient(135deg, #f8bbd9, #ffcdd2);
+      color: #4a0e23;
+    }
+    .option-btn.option-b:hover {
+      background: linear-gradient(135deg, #a5d6a7, #c8e6c9);
+      color: #0f3f12;
+    }
+    .option-btn.option-c:hover {
+      background: linear-gradient(135deg, #90caf9, #bbdefb);
+      color: #042a5c;
+    }
+    .option-btn.option-d:hover {
+      background: linear-gradient(135deg, #ffb74d, #ffcc80);
+      color: #8f2707;
+    }
+    .option-btn.correct {
+      background: linear-gradient(135deg, #81c784, #c8e6c9) !important;
+      border-color: #2e7d32 !important;
+      color: #1b5e20 !important;
+      animation: correctPulse 0.6s ease-in-out;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4) !important;
+    }
+    .option-btn.correct::after {
+      content: "✓";
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #1b5e20;
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.9);
+    }
+    .option-btn.wrong {
+      background: linear-gradient(135deg, #e57373, #ffcdd2) !important;
+      border-color: #d32f2f !important;
+      color: #b71c1c !important;
+      animation: wrongShake 0.6s ease-in-out;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4) !important;
+    }
+    .option-btn.wrong::after {
+      content: "✗";
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #b71c1c;
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.9);
+    }
+    
+    @keyframes correctPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes wrongShake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    
+    /* Hiệu ứng thông báo */
+    .success-message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      max-width: 400px;
+      background: linear-gradient(45deg, #2ecc71, #27ae60);
+      color: white;
+      padding: 20px 25px;
+      border-radius: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 10000;
+      box-shadow: 0 8px 25px rgba(46, 204, 113, 0.4);
+      animation: slideInRight 0.6s ease-out;
+      text-align: left;
+      border-left: 5px solid #1e8449;
+    }
+    
+    .error-message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      max-width: 400px;
+      background: linear-gradient(45deg, #e74c3c, #c0392b);
+      color: white;
+      padding: 20px 25px;
+      border-radius: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 10000;
+      box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+      animation: slideInRight 0.6s ease-out;
+      text-align: left;
+      border-left: 5px solid #a93226;
+    }
+    
+    @keyframes slideInRight {
+      0% { transform: translateX(100%); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+    
+    /* Hiệu ứng celebration */
+    .celebration {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 80px;
+      z-index: 9999;
+      animation: celebrationBounce 1s ease-out;
+      pointer-events: none;
+    }
+    
+    @keyframes celebrationBounce {
+      0% { transform: translate(-50%, -50%) scale(0); }
+      50% { transform: translate(-50%, -50%) scale(1.2); }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+    }
+
+    .topic-message {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      max-width: 350px;
+      background: linear-gradient(45deg, #3498db, #2980b9);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 10000;
+      box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+      animation: slideInLeft 0.6s ease-out;
+      text-align: left;
+      border-left: 5px solid #1f4e79;
+    }
+    
+    @keyframes slideInLeft {
+      0% { transform: translateX(-100%); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+
+    .game-complete-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 500px;
+      background: linear-gradient(45deg, #2ecc71, #27ae60);
+      color: white;
+      padding: 40px 50px;
+      border-radius: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      z-index: 10001;
+      box-shadow: 0 15px 40px rgba(46, 204, 113, 0.4);
+      animation: gameCompleteSlide 0.8s ease-out;
+      text-align: center;
+      border: 4px solid #1e8449;
+    }
+    
+    @keyframes gameCompleteSlide {
+      0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎲 Mở Ô Câu Hỏi Bằng Hình Ảnh 🎲</h1>
+  <p>Bé chọn chủ đề và chọn 1 ô, nhìn hình rồi trả lời!</p>
+  <div style="margin: 15px 0; padding: 15px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 15px; border: 3px solid #3498db; box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 18px; font-weight: bold; text-align: center;">
+      <div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: 12px; border-radius: 10px; border: 2px solid #f39c12; color: #7d4f00;">
+        🏆 Điểm số: <span id="score" style="color: #e67e22; font-size: 22px;">0</span>
+      </div>
+      <div style="background: linear-gradient(135deg, #d1ecf1, #a7e5f0); padding: 12px; border-radius: 10px; border: 2px solid #17a2b8; color: #0c5460;">
+        ✅ Đúng: <span id="correctCount" style="color: #28a745; font-size: 22px;">0</span>
+      </div>
+      <div style="background: linear-gradient(135deg, #f8d7da, #f5c6cb); padding: 12px; border-radius: 10px; border: 2px solid #dc3545; color: #721c24;">
+        ❌ Sai: <span id="wrongCount" style="color: #dc3545; font-size: 22px;">0</span>
+      </div>
+      <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); padding: 12px; border-radius: 10px; border: 2px solid #28a745; color: #155724;">
+        📊 Tổng: <span id="answered" style="color: #28a745; font-size: 22px;">0</span>/<span id="totalQuestions" style="color: #6c757d; font-size: 22px;">20</span>
+      </div>
+    </div>
+  </div>
+  
+  <div style="margin: 20px 0;">
+    <h3>🎯 Chọn chủ đề:</h3>
+    <div id="topicButtons">
+      <!-- Các nút chủ đề sẽ được tự động tạo bằng JavaScript -->
+    </div>
+  </div>
+  
+  <div class="grid" id="grid"></div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div id="questionImage" style="max-width: 250px; margin-bottom: 15px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></div>
+      <p id="questionText"></p>
+      <div id="optionsContainer" style="margin: 20px 0;">
+        <!-- Các lựa chọn A, B, C, D sẽ được tạo động -->
+      </div>
+      <button onclick="closeModal()" style="background: #95a5a6; margin-top: 10px;">❌ Bỏ qua</button>
+    </div>
+  </div>
+
+  <script>
+    let questions = [];
+    const grid = document.getElementById("grid");
+    const modal = document.getElementById("modal");
+    const questionImage = document.getElementById("questionImage");
+    const questionText = document.getElementById("questionText");
+    const optionsContainer = document.getElementById("optionsContainer");
+    let currentCell = null;
+    let currentAnswer = "";
+    let score = 0;
+    let answered = 0;
+    let correctAnswers = 0;
+    let wrongAnswers = 0;
+    let totalQuestions = 0;
+
+    // ===== CẤU HÌNH GAME =====
+    const GAME_CONFIG = {
+      questionsPerGame: 20, // Số câu hỏi mỗi lần chơi (thay vì 36)
+      showSuccessAnimation: true,
+      showFailAnimation: true,
+      playSound: true
+    };
+
+    // ===== HỆ THỐNG ÂM THANH =====
+    const AUDIO_SYSTEM = {
+      correctSound: null,
+      wrongSound: null,
+      celebrationSound: null,
+      
+      init() {
+        // Tạo âm thanh bằng Web Audio API (không cần file âm thanh)
+        this.createAudioContext();
+      },
+      
+      createAudioContext() {
+        try {
+          this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+          console.log('Web Audio API không được hỗ trợ');
+        }
+      },
+      
+      playCorrectSound() {
+        if (!GAME_CONFIG.playSound || !this.audioContext) return;
+        
+        // Tạo âm thanh thành công (C4-E4-G4)
+        this.playChord([261.63, 329.63, 392.00], 0.5);
+      },
+      
+      playWrongSound() {
+        if (!GAME_CONFIG.playSound || !this.audioContext) return;
+        
+        // Tạo âm thanh thất bại (C4-Bb3)
+        this.playTone(220, 0.3, 'sawtooth');
+        setTimeout(() => this.playTone(196, 0.3, 'sawtooth'), 150);
+      },
+      
+      playCelebrationSound() {
+        if (!GAME_CONFIG.playSound || !this.audioContext) return;
+        
+        // Tạo âm thanh ăn mừng
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5-E5-G5-C6
+        notes.forEach((freq, i) => {
+          setTimeout(() => this.playTone(freq, 0.3), i * 100);
+        });
+      },
+      
+      playChord(frequencies, duration) {
+        frequencies.forEach(freq => {
+          this.playTone(freq, duration);
+        });
+      },
+      
+      playTone(frequency, duration, type = 'sine') {
+        if (!this.audioContext) return;
+        
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+        
+        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + duration);
+      }
+    };
+
+    // ===== HỆ THỐNG HIỆU ỨNG =====
+    const EFFECTS_SYSTEM = {
+      showSuccessMessage(message) {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'success-message';
+        messageEl.innerHTML = `🎉 ${message} 🎉`;
+        
+        NOTIFICATION_SYSTEM.addNotification(messageEl, 2500);
+        
+        // Tạo celebration effect
+        this.createCelebration();
+        
+        // Phát âm thanh
+        AUDIO_SYSTEM.playCorrectSound();
+      },
+      
+      showErrorMessage(message) {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'error-message';
+        messageEl.innerHTML = `😔 ${message}`;
+        
+        NOTIFICATION_SYSTEM.addNotification(messageEl, 3000);
+        
+        // Phát âm thanh
+        AUDIO_SYSTEM.playWrongSound();
+      },
+      
+      createCelebration() {
+        const celebration = document.createElement('div');
+        celebration.className = 'celebration';
+        celebration.textContent = ['🎊', '🎉', '⭐', '🏆', '👏'][Math.floor(Math.random() * 5)];
+        document.body.appendChild(celebration);
+        
+        setTimeout(() => {
+          celebration.remove();
+        }, 1000);
+      },
+      
+      createConfetti() {
+        for (let i = 0; i < 50; i++) {
+          const confetti = document.createElement('div');
+          confetti.style.position = 'fixed';
+          confetti.style.left = Math.random() * window.innerWidth + 'px';
+          confetti.style.top = '-10px';
+          confetti.style.width = '10px';
+          confetti.style.height = '10px';
+          confetti.style.backgroundColor = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffd93d'][Math.floor(Math.random() * 5)];
+          confetti.style.borderRadius = '50%';
+          confetti.style.zIndex = '9999';
+          confetti.style.animation = `fall ${Math.random() * 2 + 2}s linear forwards`;
+          document.body.appendChild(confetti);
+          
+          setTimeout(() => {
+            confetti.remove();
+          }, 4000);
+        }
+      },
+      
+      showTopicLoadMessage(topicName, totalQuestions, isAllTopics = false) {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'topic-message';
+        
+        if (isAllTopics) {
+          // Tính tổng số câu hỏi từ tất cả chủ đề
+          const totalAllQuestions = Object.keys(TOPICS_CONFIG).reduce((total, key) => {
+            if (key !== 'tat_ca_chu_de') {
+              total += TOPICS_CONFIG[key].questions.length;
+            }
+            return total;
+          }, 0);
+          
+          messageEl.innerHTML = `
+            🎲 Đã tải: ${topicName}!<br>
+            <small>Có ${totalAllQuestions} câu hỏi từ tất cả chủ đề!</small>
+          `;
+        } else {
+          messageEl.innerHTML = `
+            ✅ Đã tải: ${topicName}!<br>
+            <small>Có ${totalQuestions} câu hỏi trong chủ đề này!</small>
+          `;
+        }
+        
+        NOTIFICATION_SYSTEM.addNotification(messageEl, 3000);
+        AUDIO_SYSTEM.playCorrectSound();
+      },
+      
+      showGameCompleteMessage(score, totalQuestions) {
+        const percentage = Math.round((correctAnswers / totalQuestions) * 100);
+        const messageEl = document.createElement('div');
+        messageEl.className = 'game-complete-message';
+        messageEl.innerHTML = `
+          🏆 Chúc mừng! Hoàn thành!<br><br>
+          📊 <strong>Kết quả chi tiết:</strong><br>
+          🎯 Tổng điểm: <span style="color: #f39c12; font-size: 24px; font-weight: bold;">${score}</span>/${totalQuestions * 10}<br>
+          ✅ Trả lời đúng: <span style="color: #27ae60; font-size: 22px; font-weight: bold;">${correctAnswers}</span> câu<br>
+          ❌ Trả lời sai: <span style="color: #e74c3c; font-size: 22px; font-weight: bold;">${wrongAnswers}</span> câu<br>
+          🌟 Tỷ lệ đúng: <span style="color: #8e44ad; font-size: 24px; font-weight: bold;">${percentage}%</span><br><br>
+          ${percentage >= 80 ? '🏅 Xuất sắc!' : percentage >= 60 ? '👏 Khá tốt!' : '💪 Cố gắng thêm nhé!'}
+        `;
+        
+        NOTIFICATION_SYSTEM.addNotification(messageEl, 6000);
+        
+        this.createConfetti();
+        AUDIO_SYSTEM.playCelebrationSound();
+      }
+    };
+
+    // ===== HỆ THỐNG QUẢN LÝ THÔNG BÁO =====
+    const NOTIFICATION_SYSTEM = {
+      activeNotifications: [],
+      
+      addNotification(element, duration = 3000) {
+        // Xóa thông báo cũ cùng loại
+        this.clearNotifications(element.className);
+        
+        // Thêm thông báo mới
+        this.activeNotifications.push(element);
+        document.body.appendChild(element);
+        
+        // Tự động xóa sau thời gian
+        setTimeout(() => {
+          this.removeNotification(element);
+        }, duration);
+      },
+      
+      clearNotifications(className) {
+        this.activeNotifications = this.activeNotifications.filter(notification => {
+          if (notification.className === className) {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+            return false;
+          }
+          return true;
+        });
+      },
+      
+      removeNotification(element) {
+        if (element && element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+        this.activeNotifications = this.activeNotifications.filter(n => n !== element);
+      }
+    };
+
+    // ===== CẤU HÌNH CHỦ ĐỀ (DỄ DÀNG THÊM/SỬA) =====
+    const TOPICS_CONFIG = {
+      toan: {
+        name: '🔢 Toán',
+        color: '#e74c3c',
+        questions: [
+          // Câu hỏi nhận biết số (giữ lại một số cơ bản)
+          { img: "number_1", q: "Đây là số mấy?", options: ["A. 1", "B. 2", "C. 3", "D. 4"], a: "A" },
+          { img: "number_5", q: "Đây là số mấy?", options: ["A. 4", "B. 5", "C. 6", "D. 7"], a: "B" },
+          { img: "number_10", q: "Đây là số mấy?", options: ["A. 8", "B. 9", "C. 10", "D. 11"], a: "C" },
+          
+          // Phép cộng 2 số (dưới 100)
+          { img: "addition_12_23", q: "12 + 23 = ?", options: ["A. 34", "B. 35", "C. 36", "D. 37"], a: "B" },
+          { img: "addition_15_28", q: "15 + 28 = ?", options: ["A. 42", "B. 43", "C. 44", "D. 45"], a: "B" },
+          { img: "addition_24_35", q: "24 + 35 = ?", options: ["A. 58", "B. 59", "C. 60", "D. 61"], a: "B" },
+          { img: "addition_37_26", q: "37 + 26 = ?", options: ["A. 62", "B. 63", "C. 64", "D. 65"], a: "B" },
+          { img: "addition_45_29", q: "45 + 29 = ?", options: ["A. 73", "B. 74", "C. 75", "D. 76"], a: "B" },
+          
+          // Phép trừ 2 số (dưới 100)
+          { img: "subtraction_56_23", q: "56 - 23 = ?", options: ["A. 32", "B. 33", "C. 34", "D. 35"], a: "B" },
+          { img: "subtraction_75_28", q: "75 - 28 = ?", options: ["A. 46", "B. 47", "C. 48", "D. 49"], a: "B" },
+          { img: "subtraction_84_37", q: "84 - 37 = ?", options: ["A. 46", "B. 47", "C. 48", "D. 49"], a: "B" },
+          { img: "subtraction_92_45", q: "92 - 45 = ?", options: ["A. 46", "B. 47", "C. 48", "D. 49"], a: "B" },
+          { img: "subtraction_68_29", q: "68 - 29 = ?", options: ["A. 38", "B. 39", "C. 40", "D. 41"], a: "B" },
+          
+          // Phép cộng trừ liên tiếp 3 số
+          { img: "three_numbers_1", q: "12 + 15 - 8 = ?", options: ["A. 18", "B. 19", "C. 20", "D. 21"], a: "B" },
+          { img: "three_numbers_2", q: "25 - 12 + 18 = ?", options: ["A. 30", "B. 31", "C. 32", "D. 33"], a: "B" },
+          { img: "three_numbers_3", q: "34 + 27 - 15 = ?", options: ["A. 45", "B. 46", "C. 47", "D. 48"], a: "B" },
+          { img: "three_numbers_4", q: "50 - 23 + 16 = ?", options: ["A. 42", "B. 43", "C. 44", "D. 45"], a: "B" },
+          { img: "three_numbers_5", q: "18 + 24 - 19 = ?", options: ["A. 22", "B. 23", "C. 24", "D. 25"], a: "B" },
+          
+          // Câu hỏi hình học (giữ lại)
+          { img: "circle_shape", q: "Đây là hình gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Chữ nhật"], a: "B" },
+          { img: "square_shape", q: "Đây là hình gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Chữ nhật"], a: "A" },
+          { img: "triangle_shape", q: "Đây là hình gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Chữ nhật"], a: "C" },
+          
+          // Câu hỏi toán nâng cao không cần hình
+          { img: "", q: "Trong 1 tuần có bao nhiêu ngày?", options: ["A. 6 ngày", "B. 7 ngày", "C. 8 ngày", "D. 5 ngày"], a: "B" },
+          { img: "", q: "23 + 16 = ?", options: ["A. 38", "B. 39", "C. 40", "D. 41"], a: "B" },
+          { img: "", q: "45 - 18 = ?", options: ["A. 26", "B. 27", "C. 28", "D. 29"], a: "B" },
+          { img: "", q: "35 + 28 = ?", options: ["A. 62", "B. 63", "C. 64", "D. 65"], a: "B" },
+          { img: "", q: "72 - 35 = ?", options: ["A. 36", "B. 37", "C. 38", "D. 39"], a: "B" },
+          { img: "", q: "19 + 26 = ?", options: ["A. 44", "B. 45", "C. 46", "D. 47"], a: "B" },
+          { img: "", q: "67 - 29 = ?", options: ["A. 37", "B. 38", "C. 39", "D. 40"], a: "B" },
+          { img: "", q: "14 + 37 - 22 = ?", options: ["A. 28", "B. 29", "C. 30", "D. 31"], a: "B" },
+          { img: "", q: "56 - 18 + 25 = ?", options: ["A. 62", "B. 63", "C. 64", "D. 65"], a: "B" },
+          { img: "", q: "32 + 19 - 15 = ?", options: ["A. 35", "B. 36", "C. 37", "D. 38"], a: "B" },
+          { img: "", q: "78 - 25 + 12 = ?", options: ["A. 64", "B. 65", "C. 66", "D. 67"], a: "B" },
+          { img: "", q: "26 + 34 - 18 = ?", options: ["A. 41", "B. 42", "C. 43", "D. 44"], a: "B" },
+          { img: "", q: "53 - 27 + 16 = ?", options: ["A. 41", "B. 42", "C. 43", "D. 44"], a: "B" },
+          { img: "", q: "15 + 38 - 24 = ?", options: ["A. 28", "B. 29", "C. 30", "D. 31"], a: "B" },
+          { img: "", q: "64 - 19 + 28 = ?", options: ["A. 72", "B. 73", "C. 74", "D. 75"], a: "B" },
+          { img: "", q: "29 + 45 - 37 = ?", options: ["A. 36", "B. 37", "C. 38", "D. 39"], a: "B" },
+          { img: "", q: "Hình tròn có mấy cạnh?", options: ["A. 0 cạnh", "B. 1 cạnh", "C. 2 cạnh", "D. 3 cạnh"], a: "A" },
+          { img: "", q: "Hình vuông có mấy cạnh?", options: ["A. 3 cạnh", "B. 4 cạnh", "C. 5 cạnh", "D. 6 cạnh"], a: "B" },
+          { img: "", q: "1 tá có bao nhiêu cái?", options: ["A. 10 cái", "B. 11 cái", "C. 12 cái", "D. 13 cái"], a: "C" },
+          { img: "", q: "1 thập kỷ có bao nhiêu năm?", options: ["A. 5 năm", "B. 10 năm", "C. 15 năm", "D. 20 năm"], a: "B" }
+        ]
+      },
+      con_vat: {
+        name: '🐶 Con vật',
+        color: '#27ae60',
+        questions: [
+          { img: "cat", q: "Con gì kêu meo meo?", options: ["A. Chó", "B. Mèo", "C. Vịt", "D. Gà"], a: "B" },
+          { img: "dog", q: "Con gì trung thành với chủ?", options: ["A. Chó", "B. Mèo", "C. Chuột", "D. Gà"], a: "A" },
+          { img: "duck", q: "Con gì bơi giỏi và kêu cạp cạp?", options: ["A. Cá", "B. Ếch", "C. Vịt", "D. Ngỗng"], a: "C" },
+          { img: "bird", q: "Con gì bay được trên trời?", options: ["A. Chuột", "B. Chó", "C. Mèo", "D. Chim"], a: "D" },
+          { img: "elephant", q: "Con gì có vòi dài và to nhất?", options: ["A. Heo", "B. Voi", "C. Bò", "D. Ngựa"], a: "B" },
+          { img: "kangaroo", q: "Con gì nhảy cao và có túi bụng?", options: ["A. Thỏ", "B. Kangaroo", "C. Sóc", "D. Chuột"], a: "B" },
+          { img: "cow", q: "Con gì cho sữa và kêu ò ó?", options: ["A. Bò", "B. Dê", "C. Heo", "D. Ngựa"], a: "A" },
+          { img: "giraffe", q: "Con gì cổ dài nhất?", options: ["A. Ngựa", "B. Bò", "C. Hươu cao cổ", "D. Voi"], a: "C" },
+          { img: "rabbit", q: "Con gì nhảy giỏi và có tai dài?", options: ["A. Thỏ", "B. Chuột", "C. Mèo", "D. Chó"], a: "A" },
+          { img: "fish", q: "Con gì sống dưới nước?", options: ["A. Chim", "B. Cá", "C. Mèo", "D. Chó"], a: "B" },
+          { img: "monkey", q: "Con gì thích ăn chuối?", options: ["A. Voi", "B. Khỉ", "C. Heo", "D. Gà"], a: "B" },
+          { img: "tiger", q: "Con gì có vằn đen vàng?", options: ["A. Báo", "B. Hổ", "C. Sư tử", "D. Mèo"], a: "B" },
+          { img: "sheep", q: "Con gì có lông xù và kêu be be?", options: ["A. Dê", "B. Cừu", "C. Bò", "D. Heo"], a: "B" },
+          { img: "horse", q: "Con gì chạy nhanh và kêu hí hí?", options: ["A. Ngựa", "B. Bò", "C. Dê", "D. Heo"], a: "A" },
+          { img: "frog", q: "Con gì nhảy và kêu ộp ộp?", options: ["A. Chim", "B. Ếch", "C. Cá", "D. Rắn"], a: "B" },
+          // Thêm câu hỏi mới không cần hình
+          { img: "", q: "Con gì sống ở cực Bắc, lông trắng?", options: ["A. Gấu nâu", "B. Gấu trúc", "C. Gấu Bắc cực", "D. Sư tử"], a: "C" },
+          { img: "", q: "Con gì có vết đen trắng giống ngựa vằn?", options: ["A. Ngựa", "B. Ngựa vằn", "C. Hổ", "D. Báo"], a: "B" },
+          { img: "", q: "Con gì lớn nhất trên cạn?", options: ["A. Hổ", "B. Sư tử", "C. Voi", "D. Hươu cao cổ"], a: "C" },
+          { img: "", q: "Con gì lớn nhất dưới nước?", options: ["A. Cá heo", "B. Cá mập", "C. Cá voi", "D. Bạch tuộc"], a: "C" },
+          { img: "", q: "Con gì có 8 chân?", options: ["A. Nhện", "B. Kiến", "C. Ong", "D. Bướm"], a: "A" },
+          { img: "", q: "Con gì thích ăn mật ong?", options: ["A. Kiến", "B. Gấu", "C. Hổ", "D. Sói"], a: "B" },
+          { img: "", q: "Con gì đẻ trứng nhưng cho con bú?", options: ["A. Gà", "B. Vịt", "C. Thú mỏ vịt", "D. Cá"], a: "C" },
+          { img: "", q: "Con gì sống được cả trên cạn và dưới nước?", options: ["A. Cá", "B. Chim", "C. Ếch", "D. Rắn"], a: "C" },
+          { img: "", q: "Con gì không có chân nhưng bò được?", options: ["A. Rắn", "B. Cá", "C. Chim", "D. Ếch"], a: "A" },
+          { img: "", q: "Con gì bay được mà không phải chim?", options: ["A. Chuột", "B. Dơi", "C. Ếch", "D. Cá"], a: "B" }
+        ]
+      },
+      cuoc_song: {
+        name: '🏡 Cuộc sống',
+        color: '#f39c12',
+        questions: [
+          { img: "pencil", q: "Cái này dùng để làm gì?", options: ["A. Ăn", "B. Viết", "C. Chơi", "D. Ngủ"], a: "B" },
+          { img: "bicycle", q: "Cái gì có 2 bánh và đạp bằng chân?", options: ["A. Ô tô", "B. Xe máy", "C. Xe đạp", "D. Xe buýt"], a: "C" },
+          { img: "teacher", q: "Ai là người dạy học ở trường?", options: ["A. Bạn", "B. Cô giáo", "C. Bảo vệ", "D. Phụ huynh"], a: "B" },
+          { img: "drawing", q: "Bạn này đang làm gì?", options: ["A. Đọc", "B. Ngủ", "C. Vẽ", "D. Chơi"], a: "C" },
+          { img: "ball", q: "Đồ chơi tròn này là gì?", options: ["A. Bánh", "B. Quả bóng", "C. Đĩa", "D. Bánh xe"], a: "B" },
+          { img: "chair", q: "Cái gì dùng để ngồi?", options: ["A. Bàn", "B. Ghế", "C. Giường", "D. Tủ"], a: "B" },
+          { img: "chopsticks", q: "Cái gì dùng để ăn cơm?", options: ["A. Thìa", "B. Đũa", "C. Nĩa", "D. Dao"], a: "B" },
+          { img: "book", q: "Cái gì dùng để đọc?", options: ["A. Tivi", "B. Sách", "C. Điện thoại", "D. Máy tính"], a: "B" },
+          { img: "spoon", q: "Cái gì dùng để ăn cháo?", options: ["A. Đũa", "B. Thìa", "C. Nĩa", "D. Dao"], a: "B" },
+          { img: "scissors", q: "Cái gì dùng để cắt giấy?", options: ["A. Dao", "B. Kéo", "C. Thước", "D. Bút"], a: "B" },
+          { img: "umbrella", q: "Cái gì dùng khi trời mưa?", options: ["A. Nón", "B. Ô", "C. Áo", "D. Giày"], a: "B" },
+          { img: "clock", q: "Cái gì cho biết giờ?", options: ["A. Lịch", "B. Đồng hồ", "C. Tivi", "D. Radio"], a: "B" },
+          { img: "mirror", q: "Cái gì để soi mặt?", options: ["A. Kính", "B. Gương", "C. Tivi", "D. Nước"], a: "B" },
+          { img: "broom", q: "Cái gì dùng để quét nhà?", options: ["A. Chổi", "B. Giẻ", "C. Xô", "D. Gậy"], a: "A" },
+          { img: "key", q: "Cái gì dùng để mở cửa?", options: ["A. Tay", "B. Chìa khóa", "C. Búa", "D. Dao"], a: "B" },
+          // Thêm câu hỏi mới không cần hình
+          { img: "", q: "Buổi sáng mình làm gì đầu tiên?", options: ["A. Ăn sáng", "B. Thức dậy", "C. Đi học", "D. Chơi"], a: "B" },
+          { img: "", q: "Cái gì dùng để đánh răng?", options: ["A. Bàn chải", "B. Lược", "C. Khăn", "D. Xà phòng"], a: "A" },
+          { img: "", q: "Cái gì dùng để rửa tay?", options: ["A. Dầu gội", "B. Kem đánh răng", "C. Xà phòng", "D. Kem dưỡng"], a: "C" },
+          { img: "", q: "Buổi tối trước khi ngủ nên làm gì?", options: ["A. Chơi điện tử", "B. Đánh răng", "C. Ăn kẹo", "D. Xem tivi"], a: "B" },
+          { img: "", q: "Khi qua đường nên làm gì?", options: ["A. Chạy nhanh", "B. Nghe nhạc", "C. Quan sát cẩn thận", "D. Nói chuyện"], a: "C" },
+          { img: "", q: "Cái gì giúp chúng ta thấy trong bóng tối?", options: ["A. Kính", "B. Đèn", "C. Gương", "D. Cửa sổ"], a: "B" },
+          { img: "", q: "Ở trường, ai quan trọng nhất?", options: ["A. Bạn bè", "B. Cô giáo", "C. Tất cả đều quan trọng", "D. Hiệu trưởng"], a: "C" },
+          { img: "", q: "Khi ốm nên đi gặp ai?", options: ["A. Giáo viên", "B. Bác sĩ", "C. Bạn bè", "D. Cảnh sát"], a: "B" },
+          { img: "", q: "Ở nhà ai nấu ăn ngon nhất?", options: ["A. Bố", "B. Mẹ", "C. Ông bà", "D. Tùy gia đình"], a: "D" },
+          { img: "", q: "Việc gì quan trọng nhất với bé?", options: ["A. Chơi", "B. Học tập", "C. Ngủ", "D. Cả 3 đều quan trọng"], a: "D" }
+        ]
+      },
+      tieng_anh: {
+        name: '🇺🇸 Tiếng Anh',
+        color: '#9b59b6',
+        questions: [
+          { img: "apple_en", q: "Quả táo tiếng Anh là gì?", options: ["A. Apple", "B. Orange", "C. Banana", "D. Grape"], a: "A" },
+          { img: "red_color", q: "Màu đỏ tiếng Anh là gì?", options: ["A. Blue", "B. Red", "C. Green", "D. Yellow"], a: "B" },
+          { img: "yellow_color", q: "Màu vàng tiếng Anh là gì?", options: ["A. Red", "B. Blue", "C. Yellow", "D. Green"], a: "C" },
+          { img: "cat_en", q: "Con mèo tiếng Anh là gì?", options: ["A. Dog", "B. Cat", "C. Bird", "D. Fish"], a: "B" },
+          { img: "dog_en", q: "Con chó tiếng Anh là gì?", options: ["A. Dog", "B. Cat", "C. Bird", "D. Fish"], a: "A" },
+          { img: "number_5_en", q: "Số 5 tiếng Anh là gì?", options: ["A. Four", "B. Five", "C. Six", "D. Seven"], a: "B" },
+          { img: "orange_fruit", q: "Trái cam tiếng Anh là gì?", options: ["A. Apple", "B. Orange", "C. Banana", "D. Grape"], a: "B" },
+          { img: "green_color", q: "Màu xanh lá tiếng Anh là gì?", options: ["A. Red", "B. Blue", "C. Green", "D. Yellow"], a: "C" },
+          // Thêm câu hỏi mới không cần hình
+          { img: "", q: "Hello có nghĩa là gì?", options: ["A. Tạm biệt", "B. Xin chào", "C. Cảm ơn", "D. Xin lỗi"], a: "B" },
+          { img: "", q: "Thank you có nghĩa là gì?", options: ["A. Xin chào", "B. Tạm biệt", "C. Cảm ơn", "D. Xin lỗi"], a: "C" },
+          { img: "", q: "Goodbye có nghĩa là gì?", options: ["A. Xin chào", "B. Tạm biệt", "C. Cảm ơn", "D. Xin lỗi"], a: "B" },
+          { img: "", q: "Sorry có nghĩa là gì?", options: ["A. Xin chào", "B. Tạm biệt", "C. Cảm ơn", "D. Xin lỗi"], a: "D" },
+          { img: "", q: "Water có nghĩa là gì?", options: ["A. Nước", "B. Sữa", "C. Trà", "D. Cà phê"], a: "A" },
+          { img: "", q: "Book có nghĩa là gì?", options: ["A. Bút", "B. Sách", "C. Bàn", "D. Ghế"], a: "B" },
+          { img: "", q: "Pen có nghĩa là gì?", options: ["A. Bút", "B. Sách", "C. Bàn", "D. Ghế"], a: "A" },
+          { img: "", q: "House có nghĩa là gì?", options: ["A. Trường", "B. Nhà", "C. Công viên", "D. Cửa hàng"], a: "B" },
+          { img: "", q: "School có nghĩa là gì?", options: ["A. Trường", "B. Nhà", "C. Công viên", "D. Cửa hàng"], a: "A" },
+          { img: "", q: "Mother có nghĩa là gì?", options: ["A. Bố", "B. Mẹ", "C. Anh", "D. Em"], a: "B" },
+          { img: "", q: "Father có nghĩa là gì?", options: ["A. Bố", "B. Mẹ", "C. Anh", "D. Em"], a: "A" },
+          { img: "", q: "Sun có nghĩa là gì?", options: ["A. Mặt trăng", "B. Mặt trời", "C. Ngôi sao", "D. Mây"], a: "B" },
+          { img: "", q: "Moon có nghĩa là gì?", options: ["A. Mặt trăng", "B. Mặt trời", "C. Ngôi sao", "D. Mây"], a: "A" },
+          { img: "", q: "Big có nghĩa là gì?", options: ["A. Nhỏ", "B. To", "C. Cao", "D. Thấp"], a: "B" },
+          { img: "", q: "Small có nghĩa là gì?", options: ["A. Nhỏ", "B. To", "C. Cao", "D. Thấp"], a: "A" },
+          { img: "", q: "Yes có nghĩa là gì?", options: ["A. Không", "B. Có/Đúng", "C. Có thể", "D. Không biết"], a: "B" },
+          { img: "", q: "No có nghĩa là gì?", options: ["A. Không", "B. Có/Đúng", "C. Có thể", "D. Không biết"], a: "A" }
+        ]
+      },
+      mau_sac: {
+        name: '🎨 Màu sắc',
+        color: '#1abc9c',
+        questions: [
+          { img: "color_red", q: "Đây là màu gì?", options: ["A. Xanh", "B. Đỏ", "C. Vàng", "D. Tím"], a: "B" },
+          { img: "color_yellow", q: "Đây là màu gì?", options: ["A. Đỏ", "B. Xanh", "C. Vàng", "D. Tím"], a: "C" },
+          { img: "color_blue", q: "Đây là màu gì?", options: ["A. Đỏ", "B. Xanh", "C. Vàng", "D. Tím"], a: "B" },
+          { img: "triangle", q: "Hình tam giác có mấy cạnh?", options: ["A. 2", "B. 3", "C. 4", "D. 5"], a: "B" },
+          { img: "circle", q: "Đây là hình gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Chữ nhật"], a: "B" },
+          { img: "square", q: "Đây là hình gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Chữ nhật"], a: "A" },
+          { img: "color_purple", q: "Màu tím tiếng Anh là gì?", options: ["A. Pink", "B. Purple", "C. Brown", "D. Orange"], a: "B" },
+          { img: "star", q: "Đây là hình gì?", options: ["A. Tròn", "B. Vuông", "C. Ngôi sao", "D. Tim"], a: "C" },
+          { img: "heart", q: "Đây là hình gì?", options: ["A. Tim", "B. Vuông", "C. Tròn", "D. Ngôi sao"], a: "A" },
+          { img: "diamond", q: "Đây là hình gì?", options: ["A. Vuông", "B. Kim cương", "C. Tròn", "D. Tam giác"], a: "B" },
+          { img: "colors_mix", q: "Đỏ + Vàng = màu gì?", options: ["A. Xanh", "B. Cam", "C. Tím", "D. Hồng"], a: "B" },
+          { img: "rainbow", q: "Cầu vồng có bao nhiêu màu chính?", options: ["A. 5", "B. 6", "C. 7", "D. 8"], a: "C" },
+          { img: "same_different", q: "Hình nào khác?", options: ["A. Hình 1", "B. Hình 2", "C. Hình 3", "D. Giống nhau"], a: "B" },
+          { img: "big_small_color", q: "Hình tròn nào lớn nhất?", options: ["A. Đỏ", "B. Xanh", "C. Vàng", "D. Giống nhau"], a: "C" }
+        ]
+      },
+      gia_dinh: {
+        name: '👨‍👩‍👧‍👦 Gia đình',
+        color: '#e67e22',
+        questions: [
+          { img: "mother", q: "Ai là người sinh ra bé?", options: ["A. Bà", "B. Mẹ", "C. Cô", "D. Chị"], a: "B" },
+          { img: "father", q: "Ai đi làm kiếm tiền nuôi gia đình?", options: ["A. Bố", "B. Anh", "C. Em", "D. Ông"], a: "A" },
+          { img: "eye", q: "Cái gì dùng để nhìn?", options: ["A. Tai", "B. Mũi", "C. Mắt", "D. Miệng"], a: "C" },
+          { img: "ear", q: "Cái gì dùng để nghe?", options: ["A. Mắt", "B. Tai", "C. Mũi", "D. Miệng"], a: "B" },
+          { img: "mouth", q: "Cái gì dùng để ăn?", options: ["A. Mắt", "B. Tai", "C. Mũi", "D. Miệng"], a: "D" },
+          { img: "hand_five", q: "Một bàn tay có mấy ngón?", options: ["A. 4", "B. 5", "C. 6", "D. 3"], a: "B" },
+          { img: "feet", q: "Cái gì dùng để đi?", options: ["A. Tay", "B. Mắt", "C. Chân", "D. Tai"], a: "C" },
+          { img: "hands", q: "Cái gì dùng để cầm nắm?", options: ["A. Tay", "B. Chân", "C. Mắt", "D. Tai"], a: "A" }
+        ]
+      },
+      an_toan_giao_thong: {
+        name: '🚦 An toàn giao thông',
+        color: '#34495e',
+        questions: [
+          { img: "traffic_light_red", q: "Khi đèn đỏ bé phải làm gì?", options: ["A. Chạy qua", "B. Dừng lại", "C. Đi chậm", "D. Nhìn trái phải"], a: "B" },
+          { img: "traffic_light_green", q: "Khi đèn xanh bé có thể làm gì?", options: ["A. Dừng lại", "B. Đi qua", "C. Chạy nhanh", "D. Quay lại"], a: "B" },
+          { img: "crosswalk", q: "Bé nên qua đường ở đâu?", options: ["A. Chỗ nào cũng được", "B. Vạch kẻ đường", "C. Giữa đường", "D. Góc phố"], a: "B" },
+          { img: "look_left_right", q: "Trước khi qua đường bé phải làm gì?", options: ["A. Chạy thẳng", "B. Nhìn trái phải", "C. Đứng yên", "D. Gọi to"], a: "B" },
+          { img: "helmet", q: "Khi đi xe đạp bé nên đội gì?", options: ["A. Nón lá", "B. Mũ lưỡi trai", "C. Mũ bảo hiểm", "D. Khăn"], a: "C" },
+          { img: "seat_belt", q: "Khi ngồi trên ô tô bé phải làm gì?", options: ["A. Thắt dây an toàn", "B. Đứng lên", "C. Nằm xuống", "D. Nhảy nhót"], a: "A" },
+          { img: "stop_sign", q: "Biển báo này có nghĩa là gì?", options: ["A. Đi nhanh", "B. Dừng lại", "C. Rẽ trái", "D. Quay đầu"], a: "B" },
+          { img: "school_zone", q: "Gần trường học xe cộ phải làm gì?", options: ["A. Đi nhanh", "B. Đi chậm", "C. Dừng hẳn", "D. Bấm còi"], a: "B" },
+          { img: "hold_hand", q: "Khi qua đường bé nên làm gì?", options: ["A. Chạy một mình", "B. Nắm tay người lớn", "C. Nhảy cóc", "D. Ngồi xuống"], a: "B" },
+          { img: "sidewalk", q: "Bé nên đi bộ ở đâu?", options: ["A. Giữa đường", "B. Vỉa hè", "C. Đường ô tô", "D. Chỗ nào cũng được"], a: "B" },
+          { img: "car_seat", q: "Trẻ em dưới 12 tuổi nên ngồi ở đâu trên ô tô?", options: ["A. Ghế trước", "B. Ghế sau", "C. Đứng giữa", "D. Ngoài cửa sổ"], a: "B" },
+          { img: "bicycle_lane", q: "Khi đi xe đạp nên đi ở đâu?", options: ["A. Vỉa hè", "B. Làn xe đạp", "C. Giữa đường", "D. Ngược chiều"], a: "B" },
+          { img: "traffic_police", q: "Khi cảnh sát giao thông ra hiệu dừng, bé phải làm gì?", options: ["A. Tiếp tục đi", "B. Dừng lại", "C. Chạy nhanh", "D. Quay đầu"], a: "B" },
+          { img: "reflective_vest", q: "Khi đi bộ ban đêm nên mặc gì?", options: ["A. Áo đen", "B. Áo phản quang", "C. Áo bình thường", "D. Không cần gì"], a: "B" },
+          { img: "phone_crossing", q: "Khi qua đường có nên dùng điện thoại không?", options: ["A. Có", "B. Không", "C. Tùy ý", "D. Chỉ nghe nhạc"], a: "B" }
+        ]
+      },
+      an_toan_cuoc_song: {
+        name: '⚡ An toàn cuộc sống',
+        color: '#e74c3c',
+        questions: [
+          { img: "electric_plug", q: "Có được chạm vào ổ cắm điện không?", options: ["A. Có", "B. Không", "C. Tùy ý", "D. Chỉ khi tắt điện"], a: "B" },
+          { img: "wet_hands_electric", q: "Có được chạm thiết bị điện khi tay ướt không?", options: ["A. Có", "B. Không", "C. Không sao", "D. Chỉ một chút"], a: "B" },
+          { img: "knife_danger", q: "Trẻ em có được chơi với dao không?", options: ["A. Có", "B. Không", "C. Khi có người lớn", "D. Dao nhỏ thì được"], a: "B" },
+          { img: "fire_danger", q: "Khi thấy lửa bé phải làm gì?", options: ["A. Chạy lại gần", "B. Tránh xa và báo người lớn", "C. Thổi tắt", "D. Đổ nước"], a: "B" },
+          { img: "swimming_adult", q: "Khi bơi bé phải có ai đi cùng?", options: ["A. Một mình", "B. Người lớn", "C. Bạn bè", "D. Không cần ai"], a: "B" },
+          { img: "deep_water", q: "Có được bơi ở chỗ nước sâu không?", options: ["A. Có", "B. Không", "C. Nếu bơi giỏi", "D. Có phao thì được"], a: "B" },
+          { img: "hot_stove", q: "Có được chạm vào bếp nóng không?", options: ["A. Có", "B. Không", "C. Nhanh thôi", "D. Khi tắt bếp"], a: "B" },
+          { img: "cleaning_chemicals", q: "Có được uống nước tẩy rửa không?", options: ["A. Có", "B. Không", "C. Một chút thôi", "D. Pha loãng"], a: "B" },
+          { img: "window_height", q: "Có được trèo lên cửa sổ cao không?", options: ["A. Có", "B. Không", "C. Có lan can", "D. Có người giữ"], a: "B" },
+          { img: "stranger_danger", q: "Có được đi theo người lạ không?", options: ["A. Có", "B. Không", "C. Người tốt thì được", "D. Có kẹo thì được"], a: "B" },
+          { img: "medicine_bottle", q: "Có được tự ý uống thuốc không?", options: ["A. Có", "B. Không", "C. Khi đau", "D. Thuốc ngọt thì được"], a: "B" },
+          { img: "sharp_objects", q: "Khi thấy đồ vật nhọn nên làm gì?", options: ["A. Cầm lên chơi", "B. Tránh xa", "C. Ném đi", "D. Giấu đi"], a: "B" },
+          { img: "balcony_danger", q: "Có được leo lên lan can ban công không?", options: ["A. Có", "B. Không", "C. Ban công thấp", "D. Có người giữ"], a: "B" },
+          { img: "gas_stove", q: "Trẻ em có được mở bếp gas không?", options: ["A. Có", "B. Không", "C. Khi đói", "D. Biết cách dùng"], a: "B" },
+          { img: "elevator_safety", q: "Khi thang máy mở cửa, nên làm gì?", options: ["A. Chạy vào nhanh", "B. Đợi người ra hết", "C. Nhảy vào", "D. Ép cửa"], a: "B" },
+          { img: "playground_safety", q: "Khi chơi ở sân chơi nên làm gì?", options: ["A. Chơi tùy ý", "B. Tuân thủ an toàn", "C. Chạy nhảy lung tung", "D. Không cần chú ý"], a: "B" },
+          { img: "car_hot", q: "Có được ở trong xe khi trời nóng không?", options: ["A. Có", "B. Không", "C. Chỉ một lúc", "D. Mở cửa sổ"], a: "B" },
+          { img: "emergency_number", q: "Số điện thoại khẩn cấp là gì?", options: ["A. 911", "B. 113", "C. 123", "D. 456"], a: "B" }
+        ]
+      },
+      tat_ca_chu_de: {
+        name: '🎲 Tất cả chủ đề',
+        color: '#8e44ad',
+        questions: [] // Sẽ được tạo động từ tất cả chủ đề khác
+      },
+      tu_duy: {
+        name: '🧠 Tư duy',
+        color: '#9b59b6',
+        questions: [
+          // Tư duy logic và suy luận
+          { img: "pattern_sequence", q: "Hình nào tiếp theo? ⭐🌙⭐🌙?", options: ["A. ⭐", "B. 🌙", "C. ☀️", "D. 🌟"], a: "A" },
+          { img: "shape_pattern", q: "Tiếp theo là gì? 🔴🔵🟡🔴🔵?", options: ["A. 🔴", "B. 🔵", "C. 🟡", "D. 🟢"], a: "C" },
+          { img: "number_sequence", q: "Số tiếp theo: 2, 4, 6, 8, ?", options: ["A. 9", "B. 10", "C. 11", "D. 12"], a: "B" },
+          { img: "size_pattern", q: "Kích thước tiếp theo: Nhỏ, Vừa, Lớn, ?", options: ["A. Nhỏ", "B. Vừa", "C. Lớn", "D. Rất lớn"], a: "A" },
+          
+          // So sánh và phân loại
+          { img: "animal_group", q: "Con nào khác nhóm? 🐶🐱🐭🌳", options: ["A. 🐶", "B. 🐱", "C. 🐭", "D. 🌳"], a: "D" },
+          { img: "fruit_group", q: "Cái nào không phải trái cây? 🍎🍌🥕🍊", options: ["A. 🍎", "B. 🍌", "C. 🥕", "D. 🍊"], a: "C" },
+          { img: "transport_group", q: "Cái nào không phải phương tiện? 🚗🚲🏠✈️", options: ["A. 🚗", "B. 🚲", "C. 🏠", "D. ✈️"], a: "C" },
+          { img: "color_group", q: "Màu nào khác nhóm? Đỏ-Xanh-Vàng-To", options: ["A. Đỏ", "B. Xanh", "C. Vàng", "D. To"], a: "D" },
+          
+          // Tư duy không gian
+          { img: "mirror_image", q: "Hình nào là ảnh phản chiếu của 👈?", options: ["A. 👈", "B. 👉", "C. 👆", "D. 👇"], a: "B" },
+          { img: "rotation", q: "Xoay 🔺 90 độ phải thành gì?", options: ["A. 🔺", "B. ◀️", "C. ▶️", "D. 🔻"], a: "C" },
+          { img: "shadow_match", q: "Bóng của 🏠 trông như thế nào?", options: ["A. ⬛", "B. ⬜", "C. 🟫", "D. 🔷"], a: "A" },
+          
+          // Tư duy toán học đơn giản
+          { img: "counting_logic", q: "Nếu có 3 quả táo, ăn 1 quả, còn mấy?", options: ["A. 1", "B. 2", "C. 3", "D. 4"], a: "B" },
+          { img: "more_less_logic", q: "5 > ? > 2, số nào phù hợp?", options: ["A. 1", "B. 3", "C. 6", "D. 7"], a: "B" },
+          { img: "equal_groups", q: "Chia đều 6 kẹo cho 2 bạn, mỗi bạn có mấy viên?", options: ["A. 2", "B. 3", "C. 4", "D. 6"], a: "B" },
+          
+          // Tư duy ngôn ngữ
+          { img: "rhyme_words", q: "Từ nào vần với 'mèo'?", options: ["A. chó", "B. đèo", "C. cá", "D. gà"], a: "B" },
+          { img: "opposite_word", q: "Trái nghĩa của 'to' là gì?", options: ["A. lớn", "B. nhỏ", "C. cao", "D. dài"], a: "B" },
+          { img: "word_category", q: "Từ nào cùng nhóm với 'sách'?", options: ["A. bút", "B. ăn", "C. chạy", "D. đẹp"], a: "A" },
+          
+          // Giải quyết vấn đề đơn giản
+          { img: "problem_solving1", q: "Muốn lấy đồ chơi ở trên cao, bé nên làm gì?", options: ["A. Nhảy", "B. Leo lên ghế", "C. Nhờ người lớn", "D. Ném đá"], a: "C" },
+          { img: "problem_solving2", q: "Khi trời mưa mà quên ô, bé nên làm gì?", options: ["A. Chạy nhanh", "B. Đứng chờ", "C. Tìm chỗ che", "D. Không sao"], a: "C" },
+          { img: "problem_solving3", q: "Nếu bị lạc, bé nên làm gì đầu tiên?", options: ["A. Khóc", "B. Tìm người lớn", "C. Về nhà", "D. Chơi tiếp"], a: "B" },
+          
+          // Câu hỏi không cần hình - tư duy nâng cao
+          { img: "", q: "Gì to hơn nhà mà nhẹ hơn lông?", options: ["A. Xe ô tô", "B. Bóng bay", "C. Bóng của nhà", "D. Cây to"], a: "C" },
+          { img: "", q: "Cái gì có chân mà không đi được?", options: ["A. Người què", "B. Bàn ghế", "C. Chó bị thương", "D. Robot hỏng"], a: "B" },
+          { img: "", q: "Điều gì xảy ra trước? Gà hay trứng?", options: ["A. Gà", "B. Trứng", "C. Cùng lúc", "D. Không biết"], a: "D" },
+          { img: "", q: "Nếu hôm nay là thứ 2, hôm qua là thứ mấy?", options: ["A. Chủ nhật", "B. Thứ 3", "C. Thứ 7", "D. Thứ 6"], a: "A" },
+          { img: "", q: "Con gì vừa đi được vừa bay được?", options: ["A. Chim", "B. Máy bay", "C. Con người", "D. Ong"], a: "D" },
+          { img: "", q: "Khi nào 1 + 1 = 1?", options: ["A. Không bao giờ", "B. 1 giọt nước + 1 giọt nước", "C. Khi tính sai", "D. Trong mơ"], a: "B" },
+          { img: "", q: "Cái gì càng chia càng nhiều?", options: ["A. Tiền", "B. Kẹo", "C. Niềm vui", "D. Đồ ăn"], a: "C" },
+          { img: "", q: "Tại sao hoa hướng dương hướng về mặt trời?", options: ["A. Để đẹp", "B. Để lấy ánh sáng", "C. Tự nhiên", "D. Người ta trồng vậy"], a: "B" },
+          { img: "", q: "Điều gì sẽ xảy ra nếu không có mặt trời?", options: ["A. Trái đất tối", "B. Cây chết", "C. Lạnh lắm", "D. Tất cả đều đúng"], a: "D" },
+          { img: "", q: "Tại sao cần ngủ?", options: ["A. Để lười", "B. Để nghỉ ngơi", "C. Vì buồn chán", "D. Vì đêm tối"], a: "B" },
+          { img: "", q: "Làm sao để nước đá thành nước?", options: ["A. Đun nóng", "B. Để ngoài trời", "C. Cả A và B", "D. Không thể"], a: "C" },
+          { img: "", q: "Tại sao cầu vồng có nhiều màu?", options: ["A. Người vẽ", "B. Ánh sáng khúc xạ", "C. Phép màu", "D. Tự nhiên"], a: "B" },
+          { img: "", q: "Nếu con vật nào thông minh nhất?", options: ["A. Khỉ", "B. Cá heo", "C. Con người", "D. Chó"], a: "C" },
+          { img: "", q: "Điều gì quan trọng nhất với bé?", options: ["A. Đồ chơi", "B. Học hỏi", "C. Yêu thương", "D. Tất cả"], a: "C" }
+        ]
+      }
+    };
+
+    // Tạo questionSets từ TOPICS_CONFIG để tương thích với code cũ
+    const questionSets = {};
+    Object.keys(TOPICS_CONFIG).forEach(key => {
+      questionSets[key] = TOPICS_CONFIG[key].questions;
+    });
+
+    // ===== HỆ THỐNG RANDOM CÂU HỎI =====
+    function getRandomQuestions(topicKey, count = 20) {
+      if (topicKey === 'tat_ca_chu_de') {
+        // Lấy tất cả câu hỏi từ tất cả chủ đề (trừ chính nó)
+        const allQuestions = [];
+        Object.keys(TOPICS_CONFIG).forEach(key => {
+          if (key !== 'tat_ca_chu_de') {
+            allQuestions.push(...TOPICS_CONFIG[key].questions);
+          }
+        });
+        return shuffleArray(allQuestions).slice(0, count);
+      } else {
+        // Lấy câu hỏi từ chủ đề cụ thể
+        const topicQuestions = TOPICS_CONFIG[topicKey]?.questions || [];
+        if (topicQuestions.length <= count) {
+          // Nếu không đủ câu hỏi, lặp lại
+          const repeated = [];
+          while (repeated.length < count) {
+            repeated.push(...topicQuestions);
+          }
+          return shuffleArray(repeated).slice(0, count);
+        } else {
+          // Nếu đủ câu hỏi, chọn ngẫu nhiên
+          return shuffleArray([...topicQuestions]).slice(0, count);
+        }
+      }
+    }
+
+    function shuffleArray(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    // Hàm tạo hình SVG local
+    function createSVGImage(type) {
+      const svgImages = {
+        // Toán học
+        'number_1': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">1</text></svg>`,
+        'number_2': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">2</text></svg>`,
+        'number_4': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">4</text></svg>`,
+        'number_6': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">6</text></svg>`,
+        'number_7': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">7</text></svg>`,
+        'number_9': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">9</text></svg>`,
+        'one_dot': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="25" fill="#3498db"/></svg>`,
+        'three_dots': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="70" cy="100" r="20" fill="#3498db"/><circle cx="100" cy="100" r="20" fill="#3498db"/><circle cx="130" cy="100" r="20" fill="#3498db"/></svg>`,
+        'four_dots': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="75" cy="75" r="18" fill="#3498db"/><circle cx="125" cy="75" r="18" fill="#3498db"/><circle cx="75" cy="125" r="18" fill="#3498db"/><circle cx="125" cy="125" r="18" fill="#3498db"/></svg>`,
+        'five_dots': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="75" cy="75" r="15" fill="#3498db"/><circle cx="125" cy="75" r="15" fill="#3498db"/><circle cx="100" cy="100" r="15" fill="#3498db"/><circle cx="75" cy="125" r="15" fill="#3498db"/><circle cx="125" cy="125" r="15" fill="#3498db"/></svg>`,
+        'two_plus_one': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="30" y="80" fill="#2c3e50" font-size="40" font-family="Arial">2</text><text x="60" y="80" fill="#e74c3c" font-size="40" font-family="Arial">+</text><text x="90" y="80" fill="#2c3e50" font-size="40" font-family="Arial">1</text><text x="120" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'three_plus_one': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="30" y="80" fill="#2c3e50" font-size="40" font-family="Arial">3</text><text x="60" y="80" fill="#e74c3c" font-size="40" font-family="Arial">+</text><text x="90" y="80" fill="#2c3e50" font-size="40" font-family="Arial">1</text><text x="120" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'two_plus_two': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="30" y="80" fill="#2c3e50" font-size="40" font-family="Arial">2</text><text x="60" y="80" fill="#e74c3c" font-size="40" font-family="Arial">+</text><text x="90" y="80" fill="#2c3e50" font-size="40" font-family="Arial">2</text><text x="120" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'five_minus_one': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="30" y="80" fill="#2c3e50" font-size="40" font-family="Arial">5</text><text x="60" y="80" fill="#e74c3c" font-size="40" font-family="Arial">-</text><text x="90" y="80" fill="#2c3e50" font-size="40" font-family="Arial">1</text><text x="120" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'four_minus_two': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="30" y="80" fill="#2c3e50" font-size="40" font-family="Arial">4</text><text x="60" y="80" fill="#e74c3c" font-size="40" font-family="Arial">-</text><text x="90" y="80" fill="#2c3e50" font-size="40" font-family="Arial">2</text><text x="120" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'ten_minus_five': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="20" y="80" fill="#2c3e50" font-size="35" font-family="Arial">10</text><text x="60" y="80" fill="#e74c3c" font-size="35" font-family="Arial">-</text><text x="90" y="80" fill="#2c3e50" font-size="35" font-family="Arial">5</text><text x="120" y="80" fill="#e74c3c" font-size="35" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="35" font-family="Arial">?</text></svg>`,
+        'circle_shape': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="50" fill="#3498db" stroke="#2980b9" stroke-width="4"/></svg>`,
+        'square_shape': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="50" y="50" width="100" height="100" fill="#e74c3c" stroke="#c0392b" stroke-width="4"/></svg>`,
+        'triangle_shape': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><polygon points="100,50 150,150 50,150" fill="#27ae60" stroke="#229954" stroke-width="4"/></svg>`,
+        'rectangle_shape': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="40" y="75" width="120" height="50" fill="#f39c12" stroke="#e67e22" stroke-width="4"/></svg>`,
+        'number_5': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">5</text></svg>`,
+        'two_dots': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="70" cy="100" r="25" fill="#3498db"/><circle cx="130" cy="100" r="25" fill="#3498db"/></svg>`,
+        'math_plus': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="40" y="80" fill="#2c3e50" font-size="40" font-family="Arial">2</text><text x="70" y="80" fill="#e74c3c" font-size="40" font-family="Arial">+</text><text x="100" y="80" fill="#2c3e50" font-size="40" font-family="Arial">3</text><text x="130" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="160" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'three_apples': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="50" cy="100" r="20" fill="#e74c3c"/><circle cx="100" cy="100" r="20" fill="#e74c3c"/><circle cx="150" cy="100" r="20" fill="#e74c3c"/><rect x="45" y="85" width="10" height="8" fill="#27ae60"/><rect x="95" y="85" width="10" height="8" fill="#27ae60"/><rect x="145" y="85" width="10" height="8" fill="#27ae60"/></svg>`,
+        'math_minus': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="40" y="80" fill="#2c3e50" font-size="40" font-family="Arial">5</text><text x="70" y="80" fill="#e74c3c" font-size="40" font-family="Arial">-</text><text x="100" y="80" fill="#2c3e50" font-size="40" font-family="Arial">2</text><text x="130" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="160" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'number_10': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="80" font-weight="bold" font-family="Arial">10</text></svg>`,
+        'one_plus_one': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="40" y="80" fill="#2c3e50" font-size="40" font-family="Arial">1</text><text x="70" y="80" fill="#e74c3c" font-size="40" font-family="Arial">+</text><text x="100" y="80" fill="#2c3e50" font-size="40" font-family="Arial">1</text><text x="130" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="160" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'four_fingers': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="60" width="15" height="60" fill="#f39c12" rx="7"/><rect x="80" y="50" width="15" height="70" fill="#f39c12" rx="7"/><rect x="100" y="50" width="15" height="70" fill="#f39c12" rx="7"/><rect x="120" y="60" width="15" height="60" fill="#f39c12" rx="7"/><rect x="55" y="110" width="75" height="25" fill="#f39c12" rx="12"/></svg>`,
+        'one_apple': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="110" r="30" fill="#e74c3c"/><rect x="95" y="85" width="10" height="15" fill="#27ae60"/></svg>`,
+        'four_plus_one': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="40" y="80" fill="#2c3e50" font-size="40" font-family="Arial">4</text><text x="70" y="80" fill="#e74c3c" font-size="40" font-family="Arial">+</text><text x="100" y="80" fill="#2c3e50" font-size="40" font-family="Arial">1</text><text x="130" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="160" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        
+        // Con vật
+        'cat': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="120" rx="40" ry="30" fill="#f39c12"/><circle cx="100" cy="90" r="25" fill="#f39c12"/><polygon points="80,70 85,85 75,85" fill="#f39c12"/><polygon points="120,70 125,85 115,85" fill="#f39c12"/><circle cx="90" cy="85" r="3" fill="#2c3e50"/><circle cx="110" cy="85" r="3" fill="#2c3e50"/><path d="M50 90 Q70 70 90 90" stroke="#2c3e50" stroke-width="2" fill="none"/><path d="M110 90 Q130 70 150 90" stroke="#2c3e50" stroke-width="2" fill="none"/></svg>`,
+        'dog': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="120" rx="45" ry="35" fill="#8b4513"/><ellipse cx="100" cy="85" rx="30" ry="25" fill="#8b4513"/><ellipse cx="70" cy="70" rx="8" ry="12" fill="#8b4513"/><ellipse cx="130" cy="70" rx="8" ry="12" fill="#8b4513"/><circle cx="88" cy="80" r="3" fill="#2c3e50"/><circle cx="112" cy="80" r="3" fill="#2c3e50"/><path d="M50 100 Q70 90 90 100 Q110 110 130 100 Q150 90 170 100" stroke="#2c3e50" stroke-width="2" fill="none"/><path d="M70 130 Q100 150 130 130" stroke="#2c3e50" stroke-width="2" fill="none"/></svg>`,
+        'duck': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="130" rx="50" ry="35" fill="#ffd700"/><circle cx="85" cy="85" r="30" fill="#ffd700"/><ellipse cx="65" cy="85" rx="12" ry="8" fill="#ff8c00"/><circle cx="75" cy="80" r="3" fill="#2c3e50"/><path d="M50 90 Q70 85 85 90" stroke="#2c3e50" stroke-width="4" fill="none"/></svg>`,
+        'bird': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="110" rx="35" ry="25" fill="#3498db"/><circle cx="85" cy="85" r="20" fill="#3498db"/><path d="M40 100 Q60 90 75 100 Q60 110 40 100" fill="#2980b9"/><path d="M125 100 Q145 90 160 100 Q145 110 125 100" fill="#2980b9"/><triangle points="70,85 75,90 70,95" fill="#f39c12"/><circle cx="78" cy="80" r="2" fill="#2c3e50"/></svg>`,
+        'elephant': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="110" cy="130" rx="50" ry="40" fill="#95a5a6"/><circle cx="100" cy="80" r="35" fill="#95a5a6"/><ellipse cx="65" cy="95" rx="8" ry="30" fill="#95a5a6"/><circle cx="85" cy="70" r="3" fill="#2c3e50"/><circle cx="115" cy="70" r="3" fill="#2c3e50"/><ellipse cx="75" cy="65" rx="15" ry="8" fill="#95a5a6"/><ellipse cx="125" cy="65" rx="15" ry="8" fill="#95a5a6"/></svg>`,
+        'kangaroo': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="140" rx="30" ry="45" fill="#d2691e"/><circle cx="100" cy="80" r="25" fill="#d2691e"/><ellipse cx="85" cy="60" rx="6" ry="18" fill="#d2691e"/><ellipse cx="115" cy="60" rx="6" ry="18" fill="#d2691e"/><circle cx="92" cy="75" r="3" fill="#2c3e50"/><circle cx="108" cy="75" r="3" fill="#2c3e50"/><ellipse cx="100" cy="85" rx="4" ry="3" fill="#2c3e50"/><path d="M90 90 Q100 95 110 90" stroke="#2c3e50" stroke-width="2" fill="none"/><ellipse cx="70" cy="100" rx="8" ry="20" fill="#d2691e"/><ellipse cx="130" cy="100" rx="8" ry="20" fill="#d2691e"/></svg>`,
+        'cow': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="130" rx="55" ry="40" fill="#ffffff"/><circle cx="100" cy="80" r="30" fill="#ffffff"/><ellipse cx="80" cy="65" rx="6" ry="12" fill="#ffffff"/><ellipse cx="120" cy="65" rx="6" ry="12" fill="#ffffff"/><ellipse cx="82" cy="60" rx="3" ry="8" fill="#8b4513"/><ellipse cx="118" cy="60" rx="3" ry="8" fill="#8b4513"/><circle cx="88" cy="75" r="3" fill="#2c3e50"/><circle cx="112" cy="75" r="3" fill="#2c3e50"/><ellipse cx="100" cy="85" rx="6" ry="4" fill="#ff69b4"/><ellipse cx="90" cy="120" rx="8" ry="5" fill="#2c3e50"/><ellipse cx="110" cy="120" rx="8" ry="5" fill="#2c3e50"/><ellipse cx="115" cy="135" rx="8" ry="5" fill="#2c3e50"/><ellipse cx="85" cy="135" rx="8" ry="5" fill="#2c3e50"/></svg>`,
+        'giraffe': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="150" rx="35" ry="30" fill="#daa520"/><rect x="95" y="70" width="10" height="80" fill="#daa520"/><circle cx="100" cy="60" r="20" fill="#daa520"/><ellipse cx="90" cy="50" rx="4" ry="8" fill="#daa520"/><ellipse cx="110" cy="50" rx="4" ry="8" fill="#daa520"/><circle cx="92" cy="55" r="2" fill="#2c3e50"/><circle cx="108" cy="55" r="2" fill="#2c3e50"/><circle cx="85" cy="140" r="4" fill="#8b4513"/><circle cx="115" cy="140" r="4" fill="#8b4513"/><circle cx="90" cy="160" r="4" fill="#8b4513"/><circle cx="110" cy="160" r="4" fill="#8b4513"/></svg>`,
+
+        // Cuộc sống
+        'pencil': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="80" y="40" width="40" height="120" fill="#ffd700"/><polygon points="80,40 120,40 100,20" fill="#ff69b4"/><rect x="85" y="140" width="30" height="50" fill="#2c3e50"/></svg>`,
+        'bicycle': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="60" cy="140" r="25" stroke="#2c3e50" stroke-width="4" fill="none"/><circle cx="140" cy="140" r="25" stroke="#2c3e50" stroke-width="4" fill="none"/><line x1="60" y1="140" x2="100" y2="80" stroke="#e74c3c" stroke-width="4"/><line x1="100" y1="80" x2="140" y2="140" stroke="#e74c3c" stroke-width="4"/><line x1="85" y1="140" x2="115" y2="140" stroke="#e74c3c" stroke-width="4"/><circle cx="100" cy="80" r="5" fill="#2c3e50"/><rect x="95" y="60" width="10" height="20" fill="#8b4513"/></svg>`,
+        'teacher': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="70" r="25" fill="#f4a460"/><ellipse cx="100" cy="130" rx="30" ry="45" fill="#3498db"/><rect x="85" y="105" width="30" height="50" fill="#ffffff"/><circle cx="88" cy="65" r="3" fill="#2c3e50"/><circle cx="112" cy="65" r="3" fill="#2c3e50"/><path d="M90 80 Q100 85 110 80" stroke="#2c3e50" stroke-width="2" fill="none"/><rect x="95" y="60" width="10" height="20" fill="#8b4513"/></svg>`,
+        'drawing': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="40" y="60" width="120" height="80" fill="#ffffff" stroke="#2c3e50" stroke-width="2"/><circle cx="80" cy="90" r="3" fill="#3498db"/><circle cx="120" cy="90" r="3" fill="#3498db"/><path d="M70 100 Q100 130 130 100" stroke="#2c3e50" stroke-width="2" fill="none"/><path d="M70 130 Q100 160 130 130" stroke="#2c3e50" stroke-width="2" fill="none"/></svg>`,
+        'ball': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="50" fill="#e74c3c"/><path d="M70 80 Q100 60 130 80" stroke="#ffffff" stroke-width="3" fill="none"/><path d="M70 120 Q100 140 130 120" stroke="#ffffff" stroke-width="3" fill="none"/><line x1="100" y1="50" x2="100" y2="150" stroke="#ffffff" stroke-width="3"/></svg>`,
+        'chair': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="100" width="80" height="8" fill="#8b4513"/><rect x="60" y="60" width="80" height="8" fill="#8b4513"/><rect x="60" y="60" width="8" height="48" fill="#8b4513"/><rect x="132" y="60" width="8" height="48" fill="#8b4513"/><rect x="60" y="108" width="8" height="40" fill="#8b4513"/><rect x="132" y="108" width="8" height="40" fill="#8b4513"/><rect x="68" y="148" width="8" height="20" fill="#8b4513"/><rect x="124" y="148" width="8" height="20" fill="#8b4513"/></svg>`,
+        'chopsticks': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="70" y="60" width="4" height="80" fill="#d2b48c" transform="rotate(15 72 100)"/><rect x="90" y="60" width="4" height="80" fill="#d2b48c" transform="rotate(-15 92 100)"/></svg>`,
+        'book': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="70" width="80" height="60" fill="#3498db" stroke="#2c3e50" stroke-width="2"/><line x1="100" y1="70" x2="100" y2="130" stroke="#2c3e50" stroke-width="2"/><line x1="70" y1="85" x2="90" y2="85" stroke="#ffffff" stroke-width="2"/><line x1="70" y1="95" x2="90" y2="95" stroke="#ffffff" stroke-width="2"/><line x1="110" y1="85" x2="130" y2="85" stroke="#ffffff" stroke-width="2"/><line x1="110" y1="95" x2="130" y2="95" stroke="#ffffff" stroke-width="2"/></svg>`,
+
+        // Tiếng Anh  
+        'apple_en': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="110" r="30" fill="#e74c3c"/><rect x="95" y="85" width="10" height="15" fill="#27ae60"/><text x="100" y="170" text-anchor="middle" fill="#2c3e50" font-size="20" font-family="Arial">APPLE</text></svg>`,
+        'red_color': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="40" fill="#e74c3c"/><text x="100" y="170" text-anchor="middle" fill="#2c3e50" font-size="20" font-family="Arial">RED</text></svg>`,
+        'yellow_color': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="40" fill="#f1c40f"/><text x="100" y="170" text-anchor="middle" fill="#2c3e50" font-size="20" font-family="Arial">YELLOW</text></svg>`,
+        'cat_en': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="120" rx="40" ry="30" fill="#f39c12"/><circle cx="100" cy="90" r="25" fill="#f39c12"/><polygon points="80,70 85,85 75,85" fill="#f39c12"/><polygon points="120,70 125,85 115,85" fill="#f39c12"/><circle cx="90" cy="85" r="3" fill="#2c3e50"/><circle cx="110" cy="85" r="3" fill="#2c3e50"/><text x="100" y="180" text-anchor="middle" fill="#2c3e50" font-size="20" font-family="Arial">CAT</text></svg>`,
+        'dog_en': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="120" rx="45" ry="35" fill="#8b4513"/><ellipse cx="100" cy="85" rx="30" ry="25" fill="#8b4513"/><ellipse cx="70" cy="70" rx="8" ry="12" fill="#8b4513"/><ellipse cx="130" cy="70" rx="8" ry="12" fill="#8b4513"/><circle cx="88" cy="80" r="3" fill="#2c3e50"/><circle cx="112" cy="80" r="3" fill="#2c3e50"/><text x="100" y="180" text-anchor="middle" fill="#2c3e50" font-size="20" font-family="Arial">DOG</text></svg>`,
+        'number_5_en': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="110" text-anchor="middle" fill="#2c3e50" font-size="80" font-weight="bold" font-family="Arial">5</text><text x="100" y="170" text-anchor="middle" fill="#2c3e50" font-size="20" font-family="Arial">FIVE</text></svg>`,
+        'orange_fruit': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="110" r="30" fill="#ff8c00"/><rect x="95" y="85" width="10" height="15" fill="#27ae60"/><text x="100" y="170" text-anchor="middle" fill="#2c3e50" font-size="18" font-family="Arial">ORANGE</text></svg>`,
+        'green_color': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="40" fill="#27ae60"/><text x="100" y="170" text-anchor="middle" fill="#2c3e50" font-size="20" font-family="Arial">GREEN</text></svg>`,
+
+        // Màu sắc
+        'color_red': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="50" fill="#e74c3c"/></svg>`,
+        'color_yellow': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="50" fill="#f1c40f"/></svg>`,
+        'color_blue': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="50" fill="#3498db"/></svg>`,
+        'triangle': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><polygon points="100,50 150,130 50,130" fill="#e74c3c" stroke="#2c3e50" stroke-width="3"/></svg>`,
+        'circle': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="50" fill="#3498db" stroke="#2c3e50" stroke-width="3"/></svg>`,
+        'square': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="50" y="50" width="100" height="100" fill="#27ae60" stroke="#2c3e50" stroke-width="3"/></svg>`,
+        'color_purple': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="50" fill="#9b59b6"/><text x="100" y="170" text-anchor="middle" fill="#2c3e50" font-size="18" font-family="Arial">PURPLE</text></svg>`,
+        'star': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><polygon points="100,40 115,80 160,80 125,110 140,150 100,130 60,150 75,110 40,80 85,80" fill="#f1c40f" stroke="#2c3e50" stroke-width="2"/><polygon points="100,40 130,55 145,85 130,115 100,130 70,115 55,85 70,55" fill="#e74c3c" stroke="#2c3e50" stroke-width="2"/><polygon points="100,60 110,100 150,100 115,130 130,170 100,150 70,170 85,130 50,100 90,100" fill="#3498db" stroke="#2c3e50" stroke-width="2"/></svg>`,
+
+        // Gia đình
+        'mother': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="70" r="25" fill="#f4a460"/><ellipse cx="100" cy="130" rx="30" ry="45" fill="#e74c3c"/><ellipse cx="85" cy="50" rx="12" ry="18" fill="#8b4513"/><ellipse cx="115" cy="50" rx="12" ry="18" fill="#8b4513"/><circle cx="88" cy="65" r="3" fill="#2c3e50"/><circle cx="112" cy="65" r="3" fill="#2c3e50"/><path d="M90 80 Q100 85 110 80" stroke="#ff69b4" stroke-width="2" fill="none"/></svg>`,
+        'father': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="70" r="25" fill="#d2b48c"/><ellipse cx="100" cy="130" rx="35" ry="45" fill="#2c3e50"/><rect x="85" y="105" width="30" height="50" fill="#ffffff"/><circle cx="88" cy="65" r="3" fill="#2c3e50"/><circle cx="112" cy="65" r="3" fill="#2c3e50"/><path d="M85 78 Q100 75 115 78" stroke="#2c3e50" stroke-width="2" fill="none"/><rect x="95" y="60" width="10" height="20" fill="#8b4513"/></svg>`,
+        'eye': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="100" rx="60" ry="30" fill="#ffffff" stroke="#2c3e50" stroke-width="3"/><circle cx="100" cy="100" r="20" fill="#3498db"/><circle cx="100" cy="100" r="10" fill="#2c3e50"/><circle cx="105" cy="95" r="3" fill="#ffffff"/></svg>`,
+        'ear': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="100" rx="35" ry="50" fill="#f4a460" stroke="#2c3e50" stroke-width="3"/><ellipse cx="100" cy="100" rx="20" ry="30" fill="#ffb6c1"/><ellipse cx="100" cy="90" rx="8" ry="12" fill="#f4a460"/></svg>`,
+        'mouth': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="100" rx="40" ry="25" fill="#ff69b4" stroke="#2c3e50" stroke-width="3"/><rect x="85" y="90" width="30" height="8" fill="#ffffff"/><rect x="88" y="90" width="6" height="8" fill="#ffffff"/><rect x="96" y="90" width="6" height="8" fill="#ffffff"/><rect x="104" y="90" width="6" height="8" fill="#ffffff"/><ellipse cx="100" cy="110" rx="15" ry="8" fill="#e74c3c"/></svg>`,
+        'hand_five': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="60" width="12" height="50" fill="#f4a460" rx="6"/><rect x="75" y="50" width="12" height="60" fill="#f4a460" rx="6"/><rect x="90" y="50" width="12" height="60" fill="#f4a460" rx="6"/><rect x="105" y="50" width="12" height="60" fill="#f4a460" rx="6"/><rect x="120" y="60" width="12" height="50" fill="#f4a460" rx="6"/><rect x="55" y="110" width="75" height="25" fill="#f4a460" rx="12"/></svg>`,
+        'feet': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="80" cy="130" rx="25" ry="40" fill="#f4a460"/><ellipse cx="120" cy="130" rx="25" ry="40" fill="#f4a460"/><circle cx="75" cy="115" r="4" fill="#f4a460"/><circle cx="80" cy="110" r="4" fill="#f4a460"/><circle cx="85" cy="115" r="4" fill="#f4a460"/><circle cx="115" cy="115" r="4" fill="#f4a460"/><circle cx="120" cy="110" r="4" fill="#f4a460"/><circle cx="125" cy="115" r="4" fill="#f4a460"/></svg>`,
+        'hands': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="80" cy="100" r="35" fill="#f4a460"/><circle cx="120" cy="100" r="35" fill="#f4a460"/><rect x="70" y="80" width="8" height="25" fill="#f4a460"/><rect x="78" y="75" width="8" height="30" fill="#f4a460"/><rect x="86" y="75" width="8" height="30" fill="#f4a460"/><rect x="94" y="80" width="8" height="25" fill="#f4a460"/><rect x="108" y="80" width="8" height="25" fill="#f4a460"/><rect x="116" y="75" width="8" height="30" fill="#f4a460"/><rect x="124" y="75" width="8" height="30" fill="#f4a460"/><rect x="132" y="80" width="8" height="25" fill="#f4a460"/></svg>`,
+
+        // An toàn giao thông
+        'traffic_light_red': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="80" y="40" width="40" height="120" fill="#2c3e50" rx="10"/><circle cx="100" cy="70" r="15" fill="#e74c3c"/><circle cx="100" cy="100" r="15" fill="#666"/><circle cx="100" cy="130" r="15" fill="#666"/><rect x="95" y="160" width="10" height="30" fill="#8b4513"/></svg>`,
+        'traffic_light_green': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="80" y="40" width="40" height="120" fill="#2c3e50" rx="10"/><circle cx="100" cy="70" r="15" fill="#666"/><circle cx="100" cy="100" r="15" fill="#666"/><circle cx="100" cy="130" r="15" fill="#27ae60"/><rect x="95" y="160" width="10" height="30" fill="#8b4513"/></svg>`,
+        'crosswalk': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="30" y="80" width="140" height="40" fill="#95a5a6"/><rect x="35" y="85" width="15" height="30" fill="#ffffff"/><rect x="55" y="85" width="15" height="30" fill="#ffffff"/><rect x="75" y="85" width="15" height="30" fill="#ffffff"/><rect x="95" y="85" width="15" height="30" fill="#ffffff"/><rect x="115" y="85" width="15" height="30" fill="#ffffff"/><rect x="135" y="85" width="15" height="30" fill="#ffffff"/><rect x="155" y="85" width="15" height="30" fill="#ffffff"/><rect x="35" y="90" width="130" height="20" fill="#3498db"/><circle cx="70" cy="140" r="15" stroke="#2c3e50" stroke-width="3" fill="none"/><circle cx="130" cy="140" r="15" stroke="#2c3e50" stroke-width="3" fill="none"/><rect x="35" y="85" width="15" height="30" fill="#3498db"/><rect x="155" y="85" width="15" height="30" fill="#3498db"/></svg>`,
+        'look_left_right': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="70" r="25" fill="#f4a460"/><ellipse cx="100" cy="130" rx="25" ry="40" fill="#3498db"/><circle cx="90" cy="65" r="3" fill="#2c3e50"/><circle cx="110" cy="65" r="3" fill="#2c3e50"/><path d="M50 90 Q70 70 90 90" stroke="#2c3e50" stroke-width="2" fill="none"/><path d="M110 90 Q130 70 150 90" stroke="#2c3e50" stroke-width="2" fill="none"/></svg>`,
+        'helmet': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="90" rx="50" ry="40" fill="#e74c3c"/><ellipse cx="100" cy="85" rx="45" ry="35" fill="#c0392b"/><rect x="75" y="120" width="50" height="8" fill="#2c3e50"/><circle cx="80" cy="124" r="3" fill="#95a5a6"/><circle cx="120" cy="124" r="3" fill="#95a5a6"/></svg>`,
+        'seat_belt': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="60" r="20" fill="#f4a460"/><ellipse cx="100" cy="120" rx="25" ry="35" fill="#3498db"/><path d="M80 80 Q100 95 120 80 Q120 140 100 150 Q80 140 80 80" stroke="#2c3e50" stroke-width="4" fill="none"/><rect x="85" y="145" width="30" height="15" fill="#e74c3c"/></svg>`,
+        'stop_sign': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><polygon points="100,40 130,55 145,85 130,115 100,130 70,115 55,85 70,55" fill="#e74c3c" stroke="#ffffff" stroke-width="4"/><text x="100" y="90" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial">STOP</text><rect x="95" y="130" width="10" height="40" fill="#95a5a6"/></svg>`,
+        'school_zone': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="50" width="80" height="80" fill="#f1c40f" stroke="#2c3e50" stroke-width="3"/><circle cx="85" cy="75" r="8" fill="#2c3e50"/><circle cx="115" cy="75" r="8" fill="#2c3e50"/><path d="M80 95 Q100 105 120 95" stroke="#2c3e50" stroke-width="3" fill="none"/><rect x="85" y="110" width="30" height="15" fill="#e74c3c"/><rect x="95" y="130" width="10" height="40" fill="#95a5a6"/></svg>`,
+        'hold_hand': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="70" cy="60" r="15" fill="#f4a460"/><ellipse cx="70" cy="100" rx="15" ry="25" fill="#3498db"/><circle cx="130" cy="60" r="18" fill="#666"/><ellipse cx="130" cy="105" rx="18" ry="30" fill="#2c3e50"/><rect x="120" y="80" width="20" height="15" fill="#95a5a6"/><path d="M110 110 Q130 100 150 110" stroke="#e74c3c" stroke-width="3" fill="none"/><text x="100" y="150" text-anchor="middle" fill="#e74c3c" font-size="14" font-weight="bold">⚠️ NGƯỜI LẠ</text></svg>`,
+        'sidewalk': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="30" y="120" width="140" height="30" fill="#bdc3c7"/><rect x="30" y="150" width="140" height="30" fill="#95a5a6"/><circle cx="100" cy="80" r="15" fill="#f4a460"/><ellipse cx="100" cy="110" rx="10" ry="20" fill="#3498db"/><rect x="95" y="130" width="10" height="20" fill="#8b4513"/></svg>`,
+
+        // Câu hỏi toán mới
+        'number_3': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">3</text></svg>`,
+        'six_dots': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="60" cy="80" r="15" fill="#3498db"/><circle cx="100" cy="80" r="15" fill="#3498db"/><circle cx="140" cy="80" r="15" fill="#3498db"/><circle cx="60" cy="120" r="15" fill="#3498db"/><circle cx="100" cy="120" r="15" fill="#3498db"/><circle cx="140" cy="120" r="15" fill="#3498db"/></svg>`,
+        'three_plus_two': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="30" y="80" fill="#2c3e50" font-size="40" font-family="Arial">3</text><text x="60" y="80" fill="#e74c3c" font-size="40" font-family="Arial">+</text><text x="90" y="80" fill="#2c3e50" font-size="40" font-family="Arial">2</text><text x="120" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'ten_minus_three': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="20" y="80" fill="#2c3e50" font-size="35" font-family="Arial">10</text><text x="60" y="80" fill="#e74c3c" font-size="35" font-family="Arial">-</text><text x="90" y="80" fill="#2c3e50" font-size="35" font-family="Arial">3</text><text x="120" y="80" fill="#e74c3c" font-size="35" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="35" font-family="Arial">?</text></svg>`,
+        'five_stars': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><polygon points="100,40 115,80 160,80 125,110 140,150 100,130 60,150 75,110 40,80 85,80" fill="#f1c40f" stroke="#2c3e50" stroke-width="2"/><polygon points="100,40 130,55 145,85 130,115 100,130 70,115 55,85 70,55" fill="#e74c3c" stroke="#2c3e50" stroke-width="2"/><polygon points="100,60 110,100 150,100 115,130 130,170 100,150 70,170 85,130 50,100 90,100" fill="#3498db" stroke="#2c3e50" stroke-width="2"/></svg>`,
+        'number_8': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="100" y="130" text-anchor="middle" fill="#2c3e50" font-size="120" font-weight="bold" font-family="Arial">8</text></svg>`,
+        'two_plus_four': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="30" y="80" fill="#2c3e50" font-size="40" font-family="Arial">2</text><text x="60" y="80" fill="#e74c3c" font-size="40" font-family="Arial">+</text><text x="90" y="80" fill="#2c3e50" font-size="40" font-family="Arial">4</text><text x="120" y="80" fill="#e74c3c" font-size="40" font-family="Arial">=</text><text x="150" y="80" fill="#27ae60" font-size="40" font-family="Arial">?</text></svg>`,
+        'nine_circles': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="60" cy="60" r="12" fill="#9b59b6"/><circle cx="100" cy="60" r="12" fill="#9b59b6"/><circle cx="140" cy="60" r="12" fill="#9b59b6"/><circle cx="60" cy="100" r="12" fill="#9b59b6"/><circle cx="100" cy="100" r="12" fill="#9b59b6"/><circle cx="140" cy="100" r="12" fill="#9b59b6"/><circle cx="60" cy="140" r="12" fill="#9b59b6"/><circle cx="100" cy="140" r="12" fill="#9b59b6"/><circle cx="140" cy="140" r="12" fill="#9b59b6"/></svg>`,
+
+        // An toàn giao thông mới
+        'car_seat': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="90" width="60" height="60" fill="#34495e" rx="10"/><rect x="70" y="100" width="20" height="40" fill="#2c3e50" rx="5"/><circle cx="90" cy="115" r="8" fill="#f4a460"/><path d="M80 110 Q90 115 100 110" stroke="#2c3e50" stroke-width="2" fill="none"/><rect x="85" y="160" width="10" height="30" fill="#8b4513"/></svg>`,
+        'bicycle_lane': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="30" y="80" width="140" height="40" fill="#95a5a6"/><rect x="35" y="85" width="15" height="30" fill="#ffffff"/><rect x="55" y="85" width="15" height="30" fill="#ffffff"/><rect x="75" y="85" width="15" height="30" fill="#ffffff"/><rect x="95" y="85" width="15" height="30" fill="#ffffff"/><rect x="115" y="85" width="15" height="30" fill="#ffffff"/><rect x="135" y="85" width="15" height="30" fill="#ffffff"/><rect x="155" y="85" width="15" height="30" fill="#ffffff"/><rect x="35" y="90" width="130" height="20" fill="#3498db"/><circle cx="70" cy="140" r="15" stroke="#2c3e50" stroke-width="3" fill="none"/><circle cx="130" cy="140" r="15" stroke="#2c3e50" stroke-width="3" fill="none"/><rect x="35" y="85" width="15" height="30" fill="#3498db"/><rect x="155" y="85" width="15" height="30" fill="#3498db"/></svg>`,
+        'traffic_police': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="60" r="20" fill="#f4a460"/><ellipse cx="100" cy="120" rx="25" ry="40" fill="#2c3e50"/><rect x="85" y="100" width="30" height="40" fill="#ffffff"/><circle cx="90" cy="55" r="3" fill="#2c3e50"/><circle cx="110" cy="55" r="3" fill="#2c3e50"/><rect x="85" y="45" width="30" height="10" fill="#34495e"/><ellipse cx="130" cy="90" rx="12" ry="6" fill="#f4a460"/><rect x="125" y="85" width="10" height="15" fill="#e74c3c"/></svg>`,
+        'reflective_vest': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="120" rx="40" ry="50" fill="#f1c40f"/><rect x="90" y="85" width="20" height="30" fill="#e67e22"/><rect x="80" y="90" width="40" height="8" fill="#ffffff"/><rect x="80" y="110" width="40" height="8" fill="#ffffff"/><rect x="80" y="130" width="40" height="8" fill="#ffffff"/></svg>`,
+        'phone_crossing': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="80" cy="60" r="15" fill="#f4a460"/><ellipse cx="80" cy="100" rx="15" ry="25" fill="#3498db"/><rect x="90" y="80" width="15" height="25" fill="#2c3e50" rx="3"/><rect x="92" y="85" width="11" height="15" fill="#3498db"/><line x1="100" y1="100" x2="140" y2="100" stroke="#e74c3c" stroke-width="4"/><circle cx="140" cy="100" r="10" fill="#e74c3c"/><line x1="135" y1="95" x2="145" y2="105" stroke="#ffffff" stroke-width="3"/><line x1="145" y1="95" x2="135" y2="105" stroke="#ffffff" stroke-width="3"/></svg>`,
+
+        // An toàn cuộc sống
+        'electric_plug': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="70" y="90" width="60" height="60" fill="#ecf0f1" stroke="#2c3e50" stroke-width="3" rx="10"/><circle cx="90" cy="115" r="8" fill="#2c3e50"/><circle cx="110" cy="115" r="8" fill="#2c3e50"/><rect x="95" y="135" width="10" height="15" fill="#2c3e50" rx="5"/><path d="M70 60 Q100 30 130 60" stroke="#e74c3c" stroke-width="4" fill="none"/><path d="M60 70 Q100 40 140 70" stroke="#e74c3c" stroke-width="4" fill="none"/></svg>`,
+        'wet_hands_electric': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="70" cy="100" rx="15" ry="20" fill="#f4a460"/><ellipse cx="130" cy="100" rx="15" ry="20" fill="#f4a460"/><circle cx="65" cy="90" r="3" fill="#3498db"/><circle cx="70" cy="85" r="3" fill="#3498db"/><circle cx="75" cy="90" r="3" fill="#3498db"/><circle cx="125" cy="90" r="3" fill="#3498db"/><circle cx="130" cy="85" r="3" fill="#3498db"/><circle cx="135" cy="90" r="3" fill="#3498db"/><rect x="85" y="120" width="30" height="40" fill="#ecf0f1" stroke="#2c3e50" stroke-width="2"/><path d="M80 50 Q100 20 120 50" stroke="#e74c3c" stroke-width="4" fill="none"/></svg>`,
+        'knife_danger': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="95" width="80" height="10" fill="#bdc3c7"/><rect x="60" y="95" width="60" height="10" fill="#95a5a6"/><rect x="140" y="90" width="20" height="20" fill="#8b4513" rx="5"/><path d="M50 60 Q100 30 150 60" stroke="#e74c3c" stroke-width="4" fill="none"/><path d="M40 70 Q100 40 160 70" stroke="#e74c3c" stroke-width="4" fill="none"/><text x="100" y="140" text-anchor="middle" fill="#e74c3c" font-size="20" font-weight="bold">⚠️</text></svg>`,
+        'fire_danger': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><path d="M100 150 Q80 130 90 110 Q85 90 100 100 Q110 80 120 100 Q125 90 122 110 Q130 130 110 150 Q100 160 90 150" fill="#e74c3c"/><path d="M100 140 Q90 125 95 115 Q92 105 100 110 Q105 100 110 110 Q115 105 112 115 Q120 125 110 140 Q105 145 100 140" fill="#f39c12"/><ellipse cx="100" cy="170" rx="30" ry="8" fill="#34495e"/></svg>`,
+        'swimming_adult': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="20" y="120" width="160" height="60" fill="#3498db"/><circle cx="70" cy="80" r="15" fill="#f4a460"/><ellipse cx="70" cy="110" rx="12" ry="20" fill="#e74c3c"/><circle cx="130" cy="70" r="20" fill="#d2b48c"/><ellipse cx="130" cy="110" rx="15" ry="25" fill="#2c3e50"/><path d="M60 120 Q80 110 100 120" stroke="#ffffff" stroke-width="3" fill="none"/><path d="M110 120 Q130 110 150 120" stroke="#ffffff" stroke-width="3" fill="none"/></svg>`,
+        'deep_water': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="20" y="100" width="160" height="80" fill="#2980b9"/><rect x="20" y="140" width="160" height="40" fill="#1f4e79"/><path d="M30 100 Q100 60 170 100" stroke="#85c1e9" stroke-width="3" fill="none"/><path d="M30 120 Q100 80 170 120" stroke="#5dade2" stroke-width="3" fill="none"/><text x="100" y="60" text-anchor="middle" fill="#e74c3c" font-size="24" font-weight="bold">⚠️ SÂUU</text></svg>`,
+        'hot_stove': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="120" width="80" height="40" fill="#2c3e50"/><circle cx="80" cy="100" r="18" fill="#e74c3c"/><circle cx="120" cy="100" r="18" fill="#e74c3c"/><circle cx="80" cy="100" r="12" fill="#2c3e50"/><circle cx="120" cy="100" r="12" fill="#2c3e50"/><circle cx="80" cy="100" r="6" fill="#e74c3c"/><circle cx="120" cy="100" r="6" fill="#e74c3c"/><path d="M70 80 Q80 60 90 80" stroke="#3498db" stroke-width="3" fill="none"/><path d="M110 80 Q120 60 130 80" stroke="#3498db" stroke-width="3" fill="none"/><rect x="65" y="160" width="10" height="20" fill="#95a5a6"/><rect x="125" y="160" width="10" height="20" fill="#95a5a6"/></svg>`,
+        'cleaning_chemicals': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="80" y="60" width="40" height="80" fill="#ecf0f1" stroke="#2c3e50" stroke-width="2" rx="5"/><rect x="85" y="50" width="30" height="25" fill="#3498db" rx="3"/><rect x="85" y="70" width="30" height="15" fill="#e74c3c"/><text x="100" y="82" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">THUỐC</text></svg>`,
+        'window_height': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="40" width="80" height="80" fill="#85c1e9" stroke="#2c3e50" stroke-width="3" rx="5"/><rect x="65" y="45" width="70" height="110" fill="#ecf0f1"/><rect x="70" y="60" width="30" height="50" fill="#34495e"/><rect x="110" y="60" width="30" height="50" fill="#34495e"/><line x1="85" y1="60" x2="85" y2="110" stroke="#95a5a6" stroke-width="2"/><line x1="125" y1="60" x2="125" y2="110" stroke="#95a5a6" stroke-width="2"/><circle cx="100" cy="130" r="8" fill="#f4a460"/><ellipse cx="100" cy="145" rx="6" ry="10" fill="#3498db"/><rect x="95" y="160" width="10" height="20" fill="#8b4513"/></svg>`,
+        'stranger_danger': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="70" cy="60" r="15" fill="#f4a460"/><ellipse cx="70" cy="100" rx="15" ry="25" fill="#3498db"/><circle cx="130" cy="60" r="18" fill="#666"/><ellipse cx="130" cy="105" rx="18" ry="30" fill="#2c3e50"/><rect x="120" y="80" width="20" height="15" fill="#95a5a6"/><path d="M110 110 Q130 100 150 110" stroke="#e74c3c" stroke-width="3" fill="none"/><text x="100" y="150" text-anchor="middle" fill="#e74c3c" font-size="14" font-weight="bold">⚠️ NGƯỜI LẠ</text></svg>`,
+        'medicine_bottle': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="75" y="70" width="50" height="80" fill="#ffffff" stroke="#2c3e50" stroke-width="2" rx="5"/><rect x="85" y="55" width="30" height="25" fill="#e74c3c" rx="3"/><rect x="85" y="70" width="30" height="15" fill="#e74c3c"/><text x="100" y="82" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">THUỐC</text></svg>`,
+        'sharp_objects': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><polygon points="60,120 80,80 90,80 90,120" fill="#bdc3c7"/><polygon points="60,120 80,60 85,60 85,120" fill="#95a5a6"/><rect x="85" y="120" width="10" height="30" fill="#8b4513"/><polygon points="110,130 130,90 140,90 140,130" fill="#bdc3c7"/><polygon points="110,130 130,70 135,70 135,130" fill="#95a5a6"/><rect x="135" y="130" width="10" height="20" fill="#8b4513"/><path d="M50 50 Q100 20 150 50" stroke="#e74c3c" stroke-width="4" fill="none"/><text x="100" y="180" text-anchor="middle" fill="#e74c3c" font-size="16" font-weight="bold">⚠️ NHỌN</text></svg>`,
+        'balcony_danger': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="40" y="80" width="120" height="80" fill="#ecf0f1" stroke="#2c3e50" stroke-width="2"/><rect x="45" y="75" width="110" height="10" fill="#8b4513"/><line x1="50" y1="75" x2="50" y2="85" stroke="#2c3e50" stroke-width="3"/><line x1="70" y1="75" x2="70" y2="85" stroke="#2c3e50" stroke-width="3"/><line x1="90" y1="75" x2="90" y2="85" stroke="#2c3e50" stroke-width="3"/><line x1="110" y1="75" x2="110" y2="85" stroke="#2c3e50" stroke-width="3"/><line x1="130" y1="75" x2="130" y2="85" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="75" x2="150" y2="85" stroke="#2c3e50" stroke-width="3"/><circle cx="100" cy="110" r="12" fill="#f4a460"/><ellipse cx="100" cy="135" rx="10" ry="15" fill="#3498db"/><text x="100" y="180" text-anchor="middle" fill="#e74c3c" font-size="12" font-weight="bold">NGUY HIỂM</text></svg>`,
+        'gas_stove': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="50" y="110" width="100" height="50" fill="#2c3e50"/><circle cx="80" cy="100" r="18" fill="#34495e"/><circle cx="120" cy="100" r="18" fill="#34495e"/><circle cx="80" cy="100" r="12" fill="#2c3e50"/><circle cx="120" cy="100" r="12" fill="#2c3e50"/><circle cx="80" cy="100" r="6" fill="#e74c3c"/><circle cx="120" cy="100" r="6" fill="#e74c3c"/><path d="M70 80 Q80 60 90 80" stroke="#3498db" stroke-width="3" fill="none"/><path d="M110 80 Q120 60 130 80" stroke="#3498db" stroke-width="3" fill="none"/><rect x="65" y="160" width="10" height="20" fill="#95a5a6"/><rect x="125" y="160" width="10" height="20" fill="#95a5a6"/></svg>`,
+        'elevator_safety': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="40" width="80" height="120" fill="#bdc3c7" stroke="#2c3e50" stroke-width="3"/><rect x="65" y="45" width="70" height="110" fill="#ecf0f1"/><rect x="70" y="60" width="30" height="50" fill="#34495e"/><rect x="110" y="60" width="30" height="50" fill="#34495e"/><line x1="85" y1="60" x2="85" y2="110" stroke="#95a5a6" stroke-width="2"/><line x1="125" y1="60" x2="125" y2="110" stroke="#95a5a6" stroke-width="2"/><circle cx="100" cy="130" r="8" fill="#f4a460"/><ellipse cx="100" cy="145" rx="6" ry="10" fill="#3498db"/><rect x="95" y="160" width="10" height="20" fill="#8b4513"/></svg>`,
+        'playground_safety': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="40" y="140" width="120" height="40" fill="#27ae60"/><rect x="60" y="80" width="20" height="60" fill="#8b4513"/><rect x="120" y="80" width="20" height="60" fill="#8b4513"/><rect x="60" y="80" width="80" height="15" fill="#e74c3c"/><circle cx="100" cy="70" r="12" fill="#f4a460"/><ellipse cx="100" cy="55" rx="8" ry="15" fill="#3498db"/><path d="M85 65 Q100 60 115 65" stroke="#2c3e50" stroke-width="2" fill="none"/></svg>`,
+        'car_hot': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="40" y="100" width="120" height="60" fill="#e74c3c" rx="15"/><rect x="50" y="80" width="100" height="40" fill="#c0392b" rx="10"/><circle cx="60" cy="150" r="15" stroke="#2c3e50" stroke-width="3" fill="none"/><circle cx="140" cy="150" r="15" stroke="#2c3e50" stroke-width="3" fill="none"/><rect x="60" y="90" width="80" height="30" fill="#85c1e9"/><circle cx="100" cy="105" r="8" fill="#f4a460"/><path d="M70 40 Q100 20 130 40" stroke="#f39c12" stroke-width="4" fill="none"/><path d="M75 30 Q100 10 125 30" stroke="#e67e22" stroke-width="4" fill="none"/><text x="100" y="180" text-anchor="middle" fill="#e74c3c" font-size="12" font-weight="bold">NÓNG ☀️</text></svg>`,
+        'emergency_number': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="60" width="80" height="100" fill="#e74c3c" rx="10"/><rect x="70" y="70" width="60" height="40" fill="#2c3e50" rx="5"/><text x="100" y="95" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="bold" font-family="Arial">113</text><circle cx="80" cy="130" r="6" fill="#ffffff"/><circle cx="100" cy="130" r="6" fill="#ffffff"/><circle cx="120" cy="130" r="6" fill="#ffffff"/><rect x="85" y="140" width="30" height="8" fill="#ffffff" rx="4"/><text x="100" y="180" text-anchor="middle" fill="#2c3e50" font-size="14" font-weight="bold">KHẨN CẤP</text></svg>`,
+        
+        // Thêm SVG cho câu hỏi toán mới
+        'count_fingers': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="120" rx="40" ry="30" fill="#f4a460"/><rect x="70" y="70" width="8" height="40" fill="#f4a460" rx="4"/><rect x="82" y="60" width="8" height="50" fill="#f4a460" rx="4"/><rect x="94" y="60" width="8" height="50" fill="#f4a460" rx="4"/><rect x="106" y="60" width="8" height="50" fill="#f4a460" rx="4"/><rect x="118" y="70" width="8" height="40" fill="#f4a460" rx="4"/></svg>`,
+        
+        'more_less': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="50" cy="80" r="12" fill="#e74c3c"/><circle cx="50" cy="110" r="12" fill="#e74c3c"/><circle cx="50" cy="140" r="12" fill="#e74c3c"/><circle cx="150" cy="90" r="12" fill="#e74c3c"/><circle cx="150" cy="130" r="12" fill="#e74c3c"/><line x1="100" y1="50" x2="100" y2="170" stroke="#2c3e50" stroke-width="3"/><text x="50" y="40" text-anchor="middle" fill="#2c3e50" font-size="16" font-weight="bold">3 quả</text><text x="150" y="40" text-anchor="middle" fill="#2c3e50" font-size="16" font-weight="bold">2 quả</text></svg>`,
+        
+        'what_comes_next': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><text x="40" y="100" text-anchor="middle" fill="#2c3e50" font-size="40" font-weight="bold" font-family="Arial">1</text><text x="80" y="100" text-anchor="middle" fill="#2c3e50" font-size="40" font-weight="bold" font-family="Arial">2</text><text x="120" y="100" text-anchor="middle" fill="#2c3e50" font-size="40" font-weight="bold" font-family="Arial">3</text><text x="160" y="100" text-anchor="middle" fill="#e74c3c" font-size="40" font-weight="bold" font-family="Arial">?</text><text x="100" y="150" text-anchor="middle" fill="#2c3e50" font-size="16" font-weight="bold">Số tiếp theo?</text></svg>`,
+        
+        'pattern_abc': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="40" cy="90" r="20" fill="#e74c3c"/><circle cx="80" cy="90" r="20" fill="#3498db"/><circle cx="120" cy="90" r="20" fill="#e74c3c"/><circle cx="160" cy="90" r="20" fill="#3498db"/><text x="100" y="140" text-anchor="middle" fill="#2c3e50" font-size="16" font-weight="bold">Hình tiếp theo?</text><rect x="180" y="70" width="40" height="40" fill="#f1c40f" rx="20"/><text x="200" y="95" text-anchor="middle" fill="#2c3e50" font-size="30" font-weight="bold">?</text></svg>`,
+        
+        'heavy_light': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="60" cy="80" r="25" fill="#ff69b4"/><rect x="55" y="100" width="10" height="30" fill="#95a5a6"/><polygon points="120,120 140,120 160,100 140,80 120,80 100,100" fill="#7f8c8d"/><text x="60" y="140" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">Bóng bay</text><text x="130" y="140" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">Cục đá</text></svg>`,
+        
+        // Thêm SVG cho con vật mới
+        'rabbit': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="130" rx="30" ry="25" fill="#ffffff"/><circle cx="100" cy="90" r="25" fill="#ffffff"/><ellipse cx="85" cy="60" rx="6" ry="18" fill="#ffffff"/><ellipse cx="115" cy="60" rx="6" ry="18" fill="#ffffff"/><circle cx="92" cy="75" r="3" fill="#2c3e50"/><circle cx="108" cy="75" r="3" fill="#2c3e50"/><ellipse cx="100" cy="85" rx="4" ry="3" fill="#2c3e50"/><path d="M90 90 Q100 95 110 90" stroke="#2c3e50" stroke-width="2" fill="none"/><ellipse cx="70" cy="100" rx="8" ry="20" fill="#ffffff"/><ellipse cx="130" cy="100" rx="8" ry="20" fill="#ffffff"/></svg>`,
+        
+        'fish': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="100" rx="40" ry="25" fill="#ff8c00"/><polygon points="60,100 40,85 40,115" fill="#ff8c00"/><polygon points="120,90 140,85 140,95 130,90" fill="#ff6347"/><circle cx="120" cy="90" r="6" fill="#2c3e50"/><circle cx="125" cy="87" r="2" fill="#ffffff"/><path d="M60 100 Q100 60 150 100" stroke="#3498db" stroke-width="3" fill="none"/><path d="M60 120 Q100 80 150 120" stroke="#3498db" stroke-width="3" fill="none"/></svg>`,
+        
+        'monkey': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="130" rx="25" ry="30" fill="#8b4513"/><circle cx="100" cy="80" r="22" fill="#8b4513"/><circle cx="80" cy="70" r="8" fill="#d2b48c"/><circle cx="120" cy="70" r="8" fill="#d2b48c"/><circle cx="88" cy="75" r="3" fill="#2c3e50"/><circle cx="112" cy="75" r="3" fill="#2c3e50"/><ellipse cx="100" cy="85" rx="4" ry="3" fill="#2c3e50"/><path d="M90 90 Q100 95 110 90" stroke="#2c3e50" stroke-width="2" fill="none"/><ellipse cx="65" cy="100" rx="8" ry="20" fill="#8b4513"/><ellipse cx="135" cy="100" rx="8" ry="20" fill="#8b4513"/></svg>`,
+        
+        'tiger': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="130" rx="35" ry="30" fill="#ff8c00"/><circle cx="100" cy="80" r="25" fill="#ff8c00"/><ellipse cx="85" cy="65" rx="6" ry="8" fill="#ff8c00"/><ellipse cx="115" cy="65" rx="6" ry="8" fill="#ff8c00"/><circle cx="90" cy="75" r="3" fill="#2c3e50"/><circle cx="110" cy="75" r="3" fill="#2c3e50"/><ellipse cx="100" cy="85" rx="4" ry="3" fill="#2c3e50"/><rect x="85" y="70" width="30" height="3" fill="#000000"/><rect x="80" y="100" width="40" height="3" fill="#000000"/><rect x="85" y="120" width="30" height="3" fill="#000000"/><rect x="90" y="140" width="20" height="3" fill="#000000"/></svg>`,
+        
+        'sheep': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="130" rx="40" ry="30" fill="#ffffff"/><circle cx="100" cy="90" r="25" ry="20" fill="#ffffff"/><circle cx="80" cy="85" r="8" fill="#ffffff"/><circle cx="120" cy="85" r="8" fill="#ffffff"/><circle cx="85" cy="100" r="6" fill="#ffffff"/><circle cx="115" cy="100" r="6" fill="#ffffff"/><circle cx="70" cy="110" r="8" fill="#ffffff"/><circle cx="130" cy="110" r="8" fill="#ffffff"/><circle cx="88" cy="80" r="2" fill="#2c3e50"/><circle cx="112" cy="80" r="2" fill="#2c3e50"/><ellipse cx="100" cy="88" rx="3" ry="2" fill="#ff69b4"/></svg>`,
+        
+        'horse': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="110" cy="130" rx="35" ry="30" fill="#8b4513"/><ellipse cx="95" cy="80" rx="20" ry="25" fill="#8b4513"/><polygon points="75,60 85,55 95,70" fill="#8b4513"/><rect x="80" y="50" width="25" height="8" fill="#654321"/><circle cx="85" cy="70" r="3" fill="#2c3e50"/><ellipse cx="90" cy="80" rx="3" ry="2" fill="#2c3e50"/><rect x="95" y="150" width="8" height="25" fill="#8b4513"/><rect x="115" y="150" width="8" height="25" fill="#8b4513"/><rect x="130" y="150" width="8" height="25" fill="#8b4513"/><rect x="140" y="150" width="8" height="25" fill="#8b4513"/></svg>`,
+        
+        'frog': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="130" rx="35" ry="25" fill="#27ae60"/><circle cx="100" cy="90" r="20" fill="#27ae60"/><circle cx="80" cy="75" r="8" fill="#27ae60"/><circle cx="120" cy="75" r="8" fill="#27ae60"/><circle cx="82" cy="71" r="2" fill="#2c3e50"/><circle cx="122" cy="71" r="2" fill="#2c3e50"/><path d="M90 105 Q100 110 110 105" stroke="#2c3e50" stroke-width="2" fill="none"/><ellipse cx="70" cy="140" rx="12" ry="8" fill="#27ae60"/><ellipse cx="130" cy="140" rx="12" ry="8" fill="#27ae60"/></svg>`,
+        
+        // Thêm SVG cho đồ dùng cuộc sống
+        'spoon': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="100" cy="70" rx="20" ry="15" fill="#bdc3c7"/><rect x="97" y="85" width="6" height="80" fill="#bdc3c7" rx="3"/></svg>`,
+        
+        'scissors': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><ellipse cx="70" cy="80" rx="12" ry="6" fill="#95a5a6"/><ellipse cx="70" cy="120" rx="12" ry="6" fill="#95a5a6"/><line x1="82" y1="80" x2="130" y2="100" stroke="#2c3e50" stroke-width="4"/><line x1="82" y1="120" x2="130" y2="100" stroke="#2c3e50" stroke-width="4"/><circle cx="65" cy="80" r="3" fill="#34495e"/><circle cx="65" cy="120" r="3" fill="#34495e"/></svg>`,
+        
+        'umbrella': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><path d="M50 100 Q100 50 150 100" stroke="#e74c3c" stroke-width="4" fill="#e74c3c" opacity="0.7"/><line x1="100" y1="100" x2="100" y2="160" stroke="#8b4513" stroke-width="6"/><path d="M90 110 Q100 115 110 110" stroke="#2c3e50" stroke-width="2" fill="none"/><rect x="140" y="70" width="40" height="40" fill="#f1c40f" rx="20"/><text x="160" y="95" text-anchor="middle" fill="#2c3e50" font-size="30" font-weight="bold">?</text></svg>`,
+        
+        'clock': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="100" cy="100" r="50" fill="#ffffff" stroke="#2c3e50" stroke-width="4"/><circle cx="100" cy="100" r="5" fill="#2c3e50"/><line x1="100" y1="100" x2="100" y2="70" stroke="#2c3e50" stroke-width="4" stroke-linecap="round"/><line x1="100" y1="100" x2="125" y2="100" stroke="#e74c3c" stroke-width="3" stroke-linecap="round"/><text x="100" y="65" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">12</text><text x="135" y="105" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">3</text><text x="100" y="145" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">6</text><text x="70" y="105" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">9</text></svg>`,
+        
+        'mirror': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="60" y="60" width="80" height="100" fill="#85c1e9" stroke="#2c3e50" stroke-width="3" rx="5"/><circle cx="90" cy="90" r="8" fill="#f4a460"/><ellipse cx="90" cy="110" rx="6" ry="12" fill="#3498db"/><circle cx="85" cy="85" r="2" fill="#2c3e50"/><path d="M82 95 Q90 100 98 95" stroke="#2c3e50" stroke-width="2" fill="none"/><rect x="95" y="160" width="10" height="20" fill="#8b4513"/></svg>`,
+        
+        'broom': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><rect x="97" y="40" width="6" height="100" fill="#8b4513" rx="3"/><rect x="80" y="135" width="40" height="25" fill="#f1c40f"/><line x1="85" y1="140" x2="85" y2="155" stroke="#e67e22" stroke-width="2"/><line x1="90" y1="140" x2="90" y2="155" stroke="#e67e22" stroke-width="2"/><line x1="95" y1="140" x2="95" y2="155" stroke="#e67e22" stroke-width="2"/><line x1="100" y1="140" x2="100" y2="155" stroke="#e67e22" stroke-width="2"/><line x1="105" y1="140" x2="105" y2="155" stroke="#e67e22" stroke-width="2"/><line x1="110" y1="140" x2="110" y2="155" stroke="#e67e22" stroke-width="2"/><line x1="115" y1="140" x2="115" y2="155" stroke="#e67e22" stroke-width="2"/></svg>`,
+        
+        'key': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="130" cy="100" r="25" fill="#f1c40f" stroke="#e67e22" stroke-width="3"/><circle cx="130" cy="100" r="15" fill="none" stroke="#e67e22" stroke-width="2"/><rect x="60" y="95" width="70" height="10" fill="#f1c40f"/><rect x="60" y="90" width="15" height="8" fill="#f1c40f"/><rect x="60" y="112" width="10" height="8" fill="#f1c40f"/></svg>`,
+        
+        // Thêm SVG cho câu hỏi màu sắc mới
+        'heart': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><path d="M100 150 C100 150 50 100 50 75 C50 50 75 50 100 75 C125 50 150 50 150 75 C150 100 100 150 100 150 Z" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/></svg>`,
+        
+        'diamond': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><polygon points="100,60 140,100 100,140 60,100" fill="#3498db" stroke="#2980b9" stroke-width="3"/></svg>`,
+        
+        'colors_mix': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="70" cy="90" r="25" fill="#e74c3c" opacity="0.8"/><circle cx="130" cy="90" r="25" fill="#f1c40f" opacity="0.8"/><text x="100" y="110" text-anchor="middle" fill="#2c3e50" font-size="20" font-weight="bold">+</text><circle cx="100" cy="150" r="25" fill="#ff8c00"/><text x="100" y="40" text-anchor="middle" fill="#2c3e50" font-size="16" font-weight="bold">Đỏ + Vàng = ?</text></svg>`,
+        
+        'rainbow': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><path d="M30 120 Q100 60 170 120" stroke="#e74c3c" stroke-width="8" fill="none"/><path d="M35 125 Q100 70 165 125" stroke="#ff8c00" stroke-width="8" fill="none"/><path d="M40 130 Q100 80 160 130" stroke="#f1c40f" stroke-width="8" fill="none"/><path d="M45 135 Q100 90 155 135" stroke="#27ae60" stroke-width="8" fill="none"/><path d="M50 140 Q100 100 150 140" stroke="#3498db" stroke-width="8" fill="none"/><path d="M55 145 Q100 110 145 145" stroke="#9b59b6" stroke-width="8" fill="none"/><path d="M60 150 Q100 120 140 150" stroke="#e91e63" stroke-width="8" fill="none"/><text x="100" y="180" text-anchor="middle" fill="#2c3e50" font-size="16" font-weight="bold">Cầu vồng</text></svg>`,
+        
+        'same_different': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="50" cy="80" r="20" fill="#e74c3c"/><circle cx="80" cy="80" r="20" fill="#3498db"/><circle cx="120" cy="80" r="20" fill="#e74c3c"/><circle cx="160" cy="80" r="20" fill="#3498db"/><text x="100" y="120" text-anchor="middle" fill="#2c3e50" font-size="16" font-weight="bold">Hình tiếp theo?</text><rect x="180" y="70" width="40" height="40" fill="#f1c40f" rx="20"/><text x="200" y="95" text-anchor="middle" fill="#2c3e50" font-size="30" font-weight="bold">?</text></svg>`,
+        
+        'big_small_color': `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#e8f4f8" width="200" height="200" rx="20"/><circle cx="50" cy="100" r="15" fill="#e74c3c"/><circle cx="100" cy="100" r="20" fill="#3498db"/><circle cx="150" cy="100" r="25" fill="#f1c40f"/><text x="50" y="140" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">Đỏ</text><text x="100" y="140" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">Xanh</text><text x="150" y="140" text-anchor="middle" fill="#2c3e50" font-size="12" font-weight="bold">Vàng</text></svg>`
+      };
+      
+      return svgImages[type] || `<svg width="200" height="200" viewBox="0 0 200 200"><rect fill="#ecf0f1" width="200" height="200" rx="20"/><text x="100" y="100" text-anchor="middle" fill="#95a5a6" font-size="20" font-family="Arial">?</text></svg>`;
+    }
+    function loadTopic(topic) {
+      if (TOPICS_CONFIG[topic]) {
+        // Sử dụng hệ thống random để lấy câu hỏi
+        questions = getRandomQuestions(topic, GAME_CONFIG.questionsPerGame);
+        
+        buildGrid();
+        // Reset điểm số khi chọn chủ đề mới
+        score = 0;
+        answered = 0;
+        correctAnswers = 0;
+        wrongAnswers = 0;
+        updateScore();
+        
+        if (topic === 'tat_ca_chu_de') {
+          EFFECTS_SYSTEM.showTopicLoadMessage(
+            getTopicName(topic), 
+            Object.keys(TOPICS_CONFIG).length - 1, 
+            true
+          );
+        } else {
+          const totalQuestions = TOPICS_CONFIG[topic].questions.length;
+          EFFECTS_SYSTEM.showTopicLoadMessage(
+            getTopicName(topic), 
+            totalQuestions, 
+            false
+          );
+        }
+      } else {
+        EFFECTS_SYSTEM.showErrorMessage(`Không tìm thấy chủ đề ${topic}!`);
+      }
+    }
+
+    // ===== HÀM TIỆN ÍCH THÊM CHỦ ĐỀ MỚI =====
+    function addNewTopic(topicKey, topicName, color, questionsArray) {
+      // Hàm này giúp thêm chủ đề mới một cách dễ dàng
+      // Sử dụng: addNewTopic('the_thao', '⚽ Thể thao', '#ff6b6b', [array_cau_hoi])
+      
+      if (TOPICS_CONFIG[topicKey]) {
+        console.warn(`⚠️ Chủ đề "${topicKey}" đã tồn tại!`);
+        return false;
+      }
+      
+      TOPICS_CONFIG[topicKey] = {
+        name: topicName,
+        color: color,
+        questions: questionsArray
+      };
+      
+      // Cập nhật questionSets để tương thích
+      questionSets[topicKey] = questionsArray;
+      
+      // Tái tạo nút
+      createTopicButtons();
+      
+      console.log(`✅ Đã thêm chủ đề "${topicName}" với ${questionsArray.length} câu hỏi!`);
+      return true;
+    }
+
+    // ===== TIỆN ÍCH TẠO NÚT CHỦ ĐỀ TỰ ĐỘNG =====
+    function createTopicButtons() {
+      const container = document.getElementById('topicButtons');
+      container.innerHTML = '';
+      
+      Object.keys(TOPICS_CONFIG).forEach(topicKey => {
+        const topic = TOPICS_CONFIG[topicKey];
+        const button = document.createElement('button');
+        button.textContent = topic.name;
+        button.style.cssText = `
+          margin: 5px; 
+          padding: 10px; 
+          background: ${topic.color}; 
+          color: white; 
+          border: none; 
+          border-radius: 5px; 
+          cursor: pointer;
+          transition: all 0.3s ease;
+        `;
+        button.onclick = () => loadTopic(topicKey);
+        
+        // Hover effect
+        button.onmouseover = () => {
+          button.style.transform = 'scale(1.05)';
+          button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+        };
+        button.onmouseout = () => {
+          button.style.transform = 'scale(1)';
+          button.style.boxShadow = 'none';
+        };
+        
+        container.appendChild(button);
+      });
+    }
+
+    // Hàm lấy tên chủ đề (đã đơn giản hóa)
+    function getTopicName(topic) {
+      return TOPICS_CONFIG[topic]?.name || topic;
+    }
+
+    function buildGrid() {
+      grid.innerHTML = "";
+      const totalCells = GAME_CONFIG.questionsPerGame;
+      
+      for (let i = 0; i < totalCells; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.textContent = i + 1;
+        cell.onclick = () => {
+          if (cell.classList.contains("disabled")) return;
+          const q = questions[Math.floor(Math.random() * questions.length)];
+          
+          // Tạo SVG image nếu có, ẩn đi nếu không có
+          if (q.img && q.img.trim() !== "") {
+            const svgHTML = createSVGImage(q.img);
+            questionImage.innerHTML = svgHTML;
+            questionImage.style.display = 'block';
+          } else {
+            questionImage.style.display = 'none';
+          }
+          
+          questionText.textContent = q.q;
+          currentAnswer = q.a;
+          
+          // Tạo các nút lựa chọn với màu sắc khác nhau
+          optionsContainer.innerHTML = "";
+          q.options.forEach((option, index) => {
+            const btn = document.createElement("button");
+            btn.className = `option-btn option-${String.fromCharCode(97 + index)}`; // option-a, option-b, option-c, option-d
+            btn.textContent = option;
+            btn.onclick = () => selectAnswer(String.fromCharCode(65 + index)); // A, B, C, D
+            optionsContainer.appendChild(btn);
+          });
+          
+          modal.style.display = "flex";
+          currentCell = cell;
+        };
+        grid.appendChild(cell);
+      }
+    }
+
+    function selectAnswer(selectedOption) {
+      // Tắt tất cả nút
+      const buttons = optionsContainer.querySelectorAll('.option-btn');
+      buttons.forEach(btn => btn.style.pointerEvents = 'none');
+      
+      if (selectedOption === currentAnswer) {
+        // Trả lời đúng
+        buttons.forEach((btn, index) => {
+          if (String.fromCharCode(65 + index) === currentAnswer) {
+            btn.classList.add('correct');
+          }
+        });
+        
+        setTimeout(() => {
+          // Hiệu ứng trả lời đúng
+          currentCell.style.background = 'linear-gradient(45deg, #2ecc71, #27ae60)';
+          currentCell.textContent = "🎁";
+          currentCell.classList.add("disabled");
+          modal.style.display = "none";
+          
+          // Cập nhật điểm số và thống kê
+          score += 10;
+          answered += 1;
+          correctAnswers += 1;
+          updateScore();
+          
+          // Hiệu ứng thành công
+          EFFECTS_SYSTEM.showSuccessMessage("🎉 Giỏi quá! Câu trả lời đúng! +10 điểm!");
+          
+          // Kiểm tra hoàn thành
+          if (answered === GAME_CONFIG.questionsPerGame) {
+            setTimeout(() => {
+              EFFECTS_SYSTEM.showGameCompleteMessage(score, GAME_CONFIG.questionsPerGame);
+            }, 2500);
+          }
+        }, 1000);
+      } else {
+        // Trả lời sai
+        buttons.forEach((btn, index) => {
+          if (String.fromCharCode(65 + index) === selectedOption) {
+            btn.classList.add('wrong');
+          } else if (String.fromCharCode(65 + index) === currentAnswer) {
+            btn.classList.add('correct');
+          }
+        });
+        
+        setTimeout(() => {
+          // Cập nhật thống kê khi trả lời sai
+          wrongAnswers += 1;
+          answered += 1;
+          updateScore();
+          
+          // Đánh dấu ô là đã trả lời sai và bỏ qua
+          currentCell.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+          currentCell.textContent = "❌";
+          currentCell.classList.add("disabled");
+          modal.style.display = "none";
+          
+          EFFECTS_SYSTEM.showErrorMessage(`😞 Sai rồi! Đáp án đúng là: ${currentAnswer}. Bỏ qua câu này!`);
+          
+          // Kiểm tra hoàn thành
+          if (answered === GAME_CONFIG.questionsPerGame) {
+            setTimeout(() => {
+              EFFECTS_SYSTEM.showGameCompleteMessage(score, GAME_CONFIG.questionsPerGame);
+            }, 2500);
+          }
+        }, 1500);
+      }
+    }
+
+    function updateScore() {
+      document.getElementById('score').textContent = score;
+      document.getElementById('answered').textContent = answered;
+      document.getElementById('correctCount').textContent = correctAnswers;
+      document.getElementById('wrongCount').textContent = wrongAnswers;
+      document.getElementById('totalQuestions').textContent = GAME_CONFIG.questionsPerGame;
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+    }
+
+    // Thêm hiệu ứng confetti khi trả lời đúng (di chuyển vào EFFECTS_SYSTEM)
+    // function createConfetti() - đã được thay thế bởi EFFECTS_SYSTEM.createConfetti()
+
+    // CSS cho hiệu ứng (đã được thêm vào phần CSS chính)
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fall {
+        to {
+          transform: translateY(100vh) rotate(360deg);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    window.onclick = function (event) {
+      if (event.target === modal) {
+        modal.style.display = "none";
+      }
+    };
+
+    // ===== KHỞI TẠO GAME =====
+    // Tạo các nút chủ đề khi trang load
+    document.addEventListener('DOMContentLoaded', function() {
+      createTopicButtons();
+      
+      // Khởi tạo hệ thống âm thanh
+      AUDIO_SYSTEM.init();
+      
+      // Cho phép âm thanh sau tương tác đầu tiên của người dùng
+      document.addEventListener('click', function initAudio() {
+        if (AUDIO_SYSTEM.audioContext && AUDIO_SYSTEM.audioContext.state === 'suspended') {
+          AUDIO_SYSTEM.audioContext.resume();
+        }
+        document.removeEventListener('click', initAudio);
+      }, { once: true });
+      
+      console.log('🎮 Game đã sẵn sàng! Có', Object.keys(TOPICS_CONFIG).length, 'chủ đề khả dụng.');
+      console.log('🔊 Hệ thống âm thanh đã khởi tạo.');
+      console.log('🎨 Hiệu ứng màu sắc đáp án: A=Hồng, B=Xanh lá, C=Xanh dương, D=Cam');
+    });
+  </script>
+</body>
+</html>
