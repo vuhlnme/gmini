@@ -367,6 +367,107 @@
       100% { transform: translateX(0); opacity: 1; }
     }
     
+    /* Hiệu ứng em bé vui vẻ khi trả lời đúng */
+    .happy-baby {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 100px;
+      z-index: 9999;
+      animation: happyBounce 2s ease-out;
+      pointer-events: none;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    @keyframes happyBounce {
+      0% { transform: translate(-50%, -50%) scale(0) rotate(-180deg); opacity: 0; }
+      20% { transform: translate(-50%, -50%) scale(1.3) rotate(0deg); opacity: 1; }
+      40% { transform: translate(-50%, -50%) scale(0.9) rotate(10deg); }
+      60% { transform: translate(-50%, -50%) scale(1.1) rotate(-10deg); }
+      80% { transform: translate(-50%, -50%) scale(1.05) rotate(5deg); }
+      100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0; }
+    }
+    
+    /* Hiệu ứng em bé khóc khi trả lời sai */
+    .crying-baby {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 80px;
+      z-index: 9999;
+      animation: cryingShake 2.5s ease-out;
+      pointer-events: none;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    @keyframes cryingShake {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      10% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      15%, 25%, 35%, 45%, 55%, 65%, 75%, 85% { 
+        transform: translate(-52%, -50%) scale(1.1); 
+      }
+      20%, 30%, 40%, 50%, 60%, 70%, 80%, 90% { 
+        transform: translate(-48%, -50%) scale(1.1); 
+      }
+      95% { transform: translate(-50%, -50%) scale(1); }
+      100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    }
+    
+    /* Hiệu ứng nước mắt rơi */
+    .tear-drop {
+      position: fixed;
+      width: 8px;
+      height: 15px;
+      background: linear-gradient(145deg, #3498db, #2980b9);
+      border-radius: 50% 50% 50% 0;
+      z-index: 9998;
+      animation: tearFall 2s ease-in;
+      pointer-events: none;
+      transform: rotate(45deg);
+      box-shadow: 0 2px 4px rgba(52, 152, 219, 0.4);
+    }
+    
+    @keyframes tearFall {
+      0% { 
+        top: 45%; 
+        left: 52%; 
+        opacity: 1; 
+        transform: rotate(45deg) scale(0);
+      }
+      20% { 
+        transform: rotate(45deg) scale(1);
+      }
+      100% { 
+        top: 100%; 
+        left: 52%; 
+        opacity: 0; 
+        transform: rotate(45deg) scale(0.5);
+      }
+    }
+    
+    /* Hiệu ứng confetti vui vẻ */
+    .happy-confetti {
+      position: fixed;
+      width: 12px;
+      height: 12px;
+      z-index: 9997;
+      pointer-events: none;
+      animation: confettiFall 3s linear;
+    }
+    
+    @keyframes confettiFall {
+      0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
     /* Hiệu ứng celebration */
     .celebration {
       position: fixed;
@@ -576,8 +677,11 @@
         
         NOTIFICATION_SYSTEM.addNotification(messageEl, 2500);
         
-        // Tạo celebration effect
-        this.createCelebration();
+        // Tạo hiệu ứng em bé vui vẻ
+        this.createHappyBaby();
+        
+        // Tạo confetti vui vẻ
+        this.createHappyConfetti();
         
         // Phát âm thanh
         AUDIO_SYSTEM.playCorrectSound();
@@ -590,8 +694,74 @@
         
         NOTIFICATION_SYSTEM.addNotification(messageEl, 3000);
         
+        // Tạo hiệu ứng em bé khóc
+        this.createCryingBaby();
+        
         // Phát âm thanh
         AUDIO_SYSTEM.playWrongSound();
+      },
+      
+      createHappyBaby() {
+        const happyBaby = document.createElement('div');
+        happyBaby.className = 'happy-baby';
+        const happyEmojis = ['😊', '😄', '🤗', '😍', '🥳', '😁', '🎉'];
+        happyBaby.textContent = happyEmojis[Math.floor(Math.random() * happyEmojis.length)];
+        document.body.appendChild(happyBaby);
+        
+        setTimeout(() => {
+          happyBaby.remove();
+        }, 2000);
+      },
+      
+      createCryingBaby() {
+        const cryingBaby = document.createElement('div');
+        cryingBaby.className = 'crying-baby';
+        const sadEmojis = ['😢', '😭', '😔', '🥺', '😿', '💔'];
+        cryingBaby.textContent = sadEmojis[Math.floor(Math.random() * sadEmojis.length)];
+        document.body.appendChild(cryingBaby);
+        
+        // Tạo hiệu ứng nước mắt rơi
+        this.createTearDrops();
+        
+        setTimeout(() => {
+          cryingBaby.remove();
+        }, 2500);
+      },
+      
+      createTearDrops() {
+        for (let i = 0; i < 3; i++) {
+          setTimeout(() => {
+            const tearDrop = document.createElement('div');
+            tearDrop.className = 'tear-drop';
+            document.body.appendChild(tearDrop);
+            
+            setTimeout(() => {
+              tearDrop.remove();
+            }, 2000);
+          }, i * 500);
+        }
+      },
+      
+      createHappyConfetti() {
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffd93d', '#ff9ff3', '#54a0ff'];
+        const shapes = ['●', '■', '▲', '★', '♥', '♦'];
+        
+        for (let i = 0; i < 30; i++) {
+          setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'happy-confetti';
+            confetti.style.left = Math.random() * window.innerWidth + 'px';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+            confetti.style.color = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.fontSize = (Math.random() * 10 + 10) + 'px';
+            document.body.appendChild(confetti);
+            
+            setTimeout(() => {
+              confetti.remove();
+            }, 3000);
+          }, i * 100);
+        }
       },
       
       createCelebration() {
