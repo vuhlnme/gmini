@@ -727,45 +727,34 @@
           { img: "addition_12_23", q: "12 + 23 = ?", options: ["A. 34", "B. 35", "C. 36", "D. 37"], a: "B" },
           { img: "addition_15_28", q: "15 + 28 = ?", options: ["A. 42", "B. 43", "C. 44", "D. 45"], a: "B" },
           { img: "addition_24_35", q: "24 + 35 = ?", options: ["A. 58", "B. 59", "C. 60", "D. 61"], a: "B" },
-          { img: "addition_37_26", q: "37 + 26 = ?", options: ["A. 62", "B. 63", "C. 64", "D. 65"], a: "B" },
+          { img: "addition_37_26", q: "37 + 26 = ?", options: ["A. 61", "B. 62", "C. 63", "D. 64"], a: "C" },
           { img: "addition_45_29", q: "45 + 29 = ?", options: ["A. 73", "B. 74", "C. 75", "D. 76"], a: "B" },
           
-          // Phép trừ 2 số (dưới 100)
-          { img: "subtraction_56_23", q: "56 - 23 = ?", options: ["A. 32", "B. 33", "C. 34", "D. 35"], a: "B" },
-          { img: "subtraction_75_28", q: "75 - 28 = ?", options: ["A. 46", "B. 47", "C. 48", "D. 49"], a: "B" },
-          { img: "subtraction_84_37", q: "84 - 37 = ?", options: ["A. 46", "B. 47", "C. 48", "D. 49"], a: "B" },
-          { img: "subtraction_92_45", q: "92 - 45 = ?", options: ["A. 46", "B. 47", "C. 48", "D. 49"], a: "B" },
-          { img: "subtraction_68_29", q: "68 - 29 = ?", options: ["A. 38", "B. 39", "C. 40", "D. 41"], a: "B" },
+          // Phép trừ 2 số (dưới 100) - sửa lại các kết quả
+          { img: "subtraction_56_23", q: "56 - 23 = ?", options: ["A. 31", "B. 32", "C. 33", "D. 34"], a: "C" },
+          { img: "subtraction_75_28", q: "75 - 28 = ?", options: ["A. 45", "B. 46", "C. 47", "D. 48"], a: "C" },
+          { img: "subtraction_84_37", q: "84 - 37 = ?", options: ["A. 45", "B. 46", "C. 47", "D. 48"], a: "C" },
+          { img: "subtraction_92_45", q: "92 - 45 = ?", options: ["A. 45", "B. 46", "C. 47", "D. 48"], a: "C" },
+          { img: "subtraction_68_29", q: "68 - 29 = ?", options: ["A. 37", "B. 38", "C. 39", "D. 40"], a: "C" },
           
-          // Phép cộng trừ liên tiếp 3 số
-          { img: "three_numbers_1", q: "12 + 15 - 8 = ?", options: ["A. 18", "B. 19", "C. 20", "D. 21"], a: "B" },
-          { img: "three_numbers_2", q: "25 - 12 + 18 = ?", options: ["A. 30", "B. 31", "C. 32", "D. 33"], a: "B" },
-          { img: "three_numbers_3", q: "34 + 27 - 15 = ?", options: ["A. 45", "B. 46", "C. 47", "D. 48"], a: "B" },
-          { img: "three_numbers_4", q: "50 - 23 + 16 = ?", options: ["A. 42", "B. 43", "C. 44", "D. 45"], a: "B" },
-          { img: "three_numbers_5", q: "18 + 24 - 19 = ?", options: ["A. 22", "B. 23", "C. 24", "D. 25"], a: "B" },
+          // Phép cộng trừ liên tiếp 3 số - sửa lại các kết quả
+          { img: "three_numbers_1", q: "12 + 15 - 8 = ?", options: ["A. 17", "B. 18", "C. 19", "D. 20"], a: "C" },
+          { img: "three_numbers_2", q: "25 - 12 + 18 = ?", options: ["A. 29", "B. 30", "C. 31", "D. 32"], a: "C" },
+          { img: "three_numbers_3", q: "34 + 27 - 15 = ?", options: ["A. 44", "B. 45", "C. 46", "D. 47"], a: "C" },
+          { img: "three_numbers_4", q: "50 - 23 + 16 = ?", options: ["A. 41", "B. 42", "C. 43", "D. 44"], a: "C" },
+          { img: "three_numbers_5", q: "18 + 24 - 19 = ?", options: ["A. 21", "B. 22", "C. 23", "D. 24"], a: "C" },
           
           // Câu hỏi hình học (giữ lại)
           { img: "circle_shape", q: "Đây là hình gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Chữ nhật"], a: "B" },
           { img: "square_shape", q: "Đây là hình gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Chữ nhật"], a: "A" },
           { img: "triangle_shape", q: "Đây là hình gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Chữ nhật"], a: "C" },
           
-          // Câu hỏi toán nâng cao không cần hình
+          // Câu hỏi toán nâng cao - đã loại bỏ trùng lặp
           { img: "", q: "Trong 1 tuần có bao nhiêu ngày?", options: ["A. 6 ngày", "B. 7 ngày", "C. 8 ngày", "D. 5 ngày"], a: "B" },
           { img: "", q: "23 + 16 = ?", options: ["A. 38", "B. 39", "C. 40", "D. 41"], a: "B" },
-          { img: "", q: "45 - 18 = ?", options: ["A. 26", "B. 27", "C. 28", "D. 29"], a: "B" },
-          { img: "", q: "35 + 28 = ?", options: ["A. 62", "B. 63", "C. 64", "D. 65"], a: "B" },
-          { img: "", q: "72 - 35 = ?", options: ["A. 36", "B. 37", "C. 38", "D. 39"], a: "B" },
-          { img: "", q: "19 + 26 = ?", options: ["A. 44", "B. 45", "C. 46", "D. 47"], a: "B" },
-          { img: "", q: "67 - 29 = ?", options: ["A. 37", "B. 38", "C. 39", "D. 40"], a: "B" },
-          { img: "", q: "14 + 37 - 22 = ?", options: ["A. 28", "B. 29", "C. 30", "D. 31"], a: "B" },
-          { img: "", q: "56 - 18 + 25 = ?", options: ["A. 62", "B. 63", "C. 64", "D. 65"], a: "B" },
-          { img: "", q: "32 + 19 - 15 = ?", options: ["A. 35", "B. 36", "C. 37", "D. 38"], a: "B" },
-          { img: "", q: "78 - 25 + 12 = ?", options: ["A. 64", "B. 65", "C. 66", "D. 67"], a: "B" },
-          { img: "", q: "26 + 34 - 18 = ?", options: ["A. 41", "B. 42", "C. 43", "D. 44"], a: "B" },
-          { img: "", q: "53 - 27 + 16 = ?", options: ["A. 41", "B. 42", "C. 43", "D. 44"], a: "B" },
-          { img: "", q: "15 + 38 - 24 = ?", options: ["A. 28", "B. 29", "C. 30", "D. 31"], a: "B" },
-          { img: "", q: "64 - 19 + 28 = ?", options: ["A. 72", "B. 73", "C. 74", "D. 75"], a: "B" },
-          { img: "", q: "29 + 45 - 37 = ?", options: ["A. 36", "B. 37", "C. 38", "D. 39"], a: "B" },
+          { img: "", q: "45 - 18 = ?", options: ["A. 25", "B. 26", "C. 27", "D. 28"], a: "C" },
+          { img: "", q: "35 + 28 = ?", options: ["A. 61", "B. 62", "C. 63", "D. 64"], a: "C" },
+          { img: "", q: "72 - 35 = ?", options: ["A. 35", "B. 36", "C. 37", "D. 38"], a: "C" },
           { img: "", q: "Hình tròn có mấy cạnh?", options: ["A. 0 cạnh", "B. 1 cạnh", "C. 2 cạnh", "D. 3 cạnh"], a: "A" },
           { img: "", q: "Hình vuông có mấy cạnh?", options: ["A. 3 cạnh", "B. 4 cạnh", "C. 5 cạnh", "D. 6 cạnh"], a: "B" },
           { img: "", q: "1 tá có bao nhiêu cái?", options: ["A. 10 cái", "B. 11 cái", "C. 12 cái", "D. 13 cái"], a: "C" },
@@ -791,7 +780,7 @@
           { img: "sheep", q: "Con gì có lông xù và kêu be be?", options: ["A. Dê", "B. Cừu", "C. Bò", "D. Heo"], a: "B" },
           { img: "horse", q: "Con gì chạy nhanh và kêu hí hí?", options: ["A. Ngựa", "B. Bò", "C. Dê", "D. Heo"], a: "A" },
           { img: "frog", q: "Con gì nhảy và kêu ộp ộp?", options: ["A. Chim", "B. Ếch", "C. Cá", "D. Rắn"], a: "B" },
-          // Thêm câu hỏi mới không cần hình
+          // Thêm câu hỏi mới không cần hình - đã loại bỏ trùng lặp
           { img: "", q: "Con gì sống ở cực Bắc, lông trắng?", options: ["A. Gấu nâu", "B. Gấu trúc", "C. Gấu Bắc cực", "D. Sư tử"], a: "C" },
           { img: "", q: "Con gì có vết đen trắng giống ngựa vằn?", options: ["A. Ngựa", "B. Ngựa vằn", "C. Hổ", "D. Báo"], a: "B" },
           { img: "", q: "Con gì lớn nhất trên cạn?", options: ["A. Hổ", "B. Sư tử", "C. Voi", "D. Hươu cao cổ"], a: "C" },
@@ -823,7 +812,7 @@
           { img: "mirror", q: "Cái gì để soi mặt?", options: ["A. Kính", "B. Gương", "C. Tivi", "D. Nước"], a: "B" },
           { img: "broom", q: "Cái gì dùng để quét nhà?", options: ["A. Chổi", "B. Giẻ", "C. Xô", "D. Gậy"], a: "A" },
           { img: "key", q: "Cái gì dùng để mở cửa?", options: ["A. Tay", "B. Chìa khóa", "C. Búa", "D. Dao"], a: "B" },
-          // Thêm câu hỏi mới không cần hình
+          // Thêm câu hỏi mới không cần hình - đã loại bỏ trùng lặp
           { img: "", q: "Buổi sáng mình làm gì đầu tiên?", options: ["A. Ăn sáng", "B. Thức dậy", "C. Đi học", "D. Chơi"], a: "B" },
           { img: "", q: "Cái gì dùng để đánh răng?", options: ["A. Bàn chải", "B. Lược", "C. Khăn", "D. Xà phòng"], a: "A" },
           { img: "", q: "Cái gì dùng để rửa tay?", options: ["A. Dầu gội", "B. Kem đánh răng", "C. Xà phòng", "D. Kem dưỡng"], a: "C" },
@@ -848,7 +837,7 @@
           { img: "number_5_en", q: "Số 5 tiếng Anh là gì?", options: ["A. Four", "B. Five", "C. Six", "D. Seven"], a: "B" },
           { img: "orange_fruit", q: "Trái cam tiếng Anh là gì?", options: ["A. Apple", "B. Orange", "C. Banana", "D. Grape"], a: "B" },
           { img: "green_color", q: "Màu xanh lá tiếng Anh là gì?", options: ["A. Red", "B. Blue", "C. Green", "D. Yellow"], a: "C" },
-          // Thêm câu hỏi mới không cần hình
+          // Thêm câu hỏi mới không cần hình - đã loại bỏ trùng lặp
           { img: "", q: "Hello có nghĩa là gì?", options: ["A. Tạm biệt", "B. Xin chào", "C. Cảm ơn", "D. Xin lỗi"], a: "B" },
           { img: "", q: "Thank you có nghĩa là gì?", options: ["A. Xin chào", "B. Tạm biệt", "C. Cảm ơn", "D. Xin lỗi"], a: "C" },
           { img: "", q: "Goodbye có nghĩa là gì?", options: ["A. Xin chào", "B. Tạm biệt", "C. Cảm ơn", "D. Xin lỗi"], a: "B" },
@@ -948,7 +937,7 @@
         ]
       },
       tat_ca_chu_de: {
-        name: '🎲 Tất cả chủ đề',
+        name: '🎲 Ngẫu nhiên',
         color: '#8e44ad',
         questions: [] // Sẽ được tạo động từ tất cả chủ đề khác
       },
@@ -1304,7 +1293,17 @@
       const container = document.getElementById('topicButtons');
       container.innerHTML = '';
       
-      Object.keys(TOPICS_CONFIG).forEach(topicKey => {
+      // Tạo thứ tự hiển thị: "Ngẫu nhiên" đầu tiên, sau đó các chủ đề khác
+      const topicOrder = ['tat_ca_chu_de']; // Ngẫu nhiên đầu tiên
+      
+      // Thêm các chủ đề khác (trừ tat_ca_chu_de)
+      Object.keys(TOPICS_CONFIG).forEach(key => {
+        if (key !== 'tat_ca_chu_de') {
+          topicOrder.push(key);
+        }
+      });
+      
+      topicOrder.forEach(topicKey => {
         const topic = TOPICS_CONFIG[topicKey];
         const button = document.createElement('button');
         button.textContent = topic.name;
