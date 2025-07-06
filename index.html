@@ -1348,7 +1348,9 @@
         cell.textContent = i + 1;
         cell.onclick = () => {
           if (cell.classList.contains("disabled")) return;
-          const q = questions[Math.floor(Math.random() * questions.length)];
+          
+          // Lấy câu hỏi cố định theo chỉ số ô (i) thay vì random
+          const q = questions[i];
           
           // Tạo SVG image nếu có, ẩn đi nếu không có
           if (q.img && q.img.trim() !== "") {
