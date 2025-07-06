@@ -31,6 +31,46 @@
   <style>
     body { font-family: Arial, sans-serif; text-align: center; background-color: #f0f8ff; }
     h1 { color: #2c3e50; }
+    
+    /* Thanh điểm số và tiến độ */
+    .score-board {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 30px;
+      margin: 20px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    
+    .score-item {
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .progress-container {
+      background: rgba(255,255,255,0.3);
+      border-radius: 10px;
+      height: 10px;
+      width: 200px;
+      overflow: hidden;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #00ff88, #00d4ff);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
     .grid { display: grid; grid-template-columns: repeat(6, 90px); gap: 10px; justify-content: center; margin-top: 20px; }
     .cell {
       width: 90px;
@@ -467,6 +507,22 @@
         opacity: 0;
       }
     }
+    
+    /* Animation cho achievement */
+    @keyframes achievementPop {
+      0% { 
+        transform: scale(0) rotate(-10deg);
+        opacity: 0;
+      }
+      50% { 
+        transform: scale(1.1) rotate(5deg);
+        opacity: 1;
+      }
+      100% { 
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
+    }
 
     /* Hiệu ứng celebration */
     .celebration {
@@ -552,6 +608,9 @@
       <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); padding: 12px; border-radius: 10px; border: 2px solid #28a745; color: #155724;">
         📊 Tổng: <span id="answered" style="color: #28a745; font-size: 22px;">0</span>/<span id="totalQuestions" style="color: #6c757d; font-size: 22px;">20</span>
       </div>
+      <div style="background: linear-gradient(135deg, #e2e3e5, #d6d8db); padding: 12px; border-radius: 10px; border: 2px solid #6c757d; color: #383d41;">
+        🎯 Kỷ lục: <span id="bestScore" style="color: #6f42c1; font-size: 22px;">0</span>
+      </div>
     </div>
   </div>
   
@@ -589,6 +648,45 @@
     let correctAnswers = 0;
     let wrongAnswers = 0;
     let totalQuestions = 0;
+    let consecutiveCorrect = 0; // Theo dõi câu đúng liên tiếp
+    
+    // Theo dõi thành tích
+    let achievements = {
+      firstCorrect: false,
+      threeInRow: false,
+      fiveInRow: false,
+      halfCorrect: false,
+      mostCorrect: false,
+      perfect: false
+    };
+
+    // ===== HỆ THỐNG LƯU TRỮ KỶ LỤC =====
+    const STORAGE_SYSTEM = {
+      getBestScore() {
+        try {
+          return parseInt(localStorage.getItem('gmini_best_score') || '0');
+        } catch {
+          return 0;
+        }
+      },
+      
+      setBestScore(score) {
+        try {
+          const currentBest = this.getBestScore();
+          if (score > currentBest) {
+            localStorage.setItem('gmini_best_score', score.toString());
+            return true; // Có kỷ lục mới
+          }
+        } catch {
+          // Không thể lưu, bỏ qua
+        }
+        return false;
+      },
+      
+      updateBestScoreDisplay() {
+        document.getElementById('bestScore').textContent = this.getBestScore();
+      }
+    };
 
     // ===== CẤU HÌNH GAME =====
     const GAME_CONFIG = {
@@ -673,7 +771,15 @@
       showSuccessMessage(message) {
         const messageEl = document.createElement('div');
         messageEl.className = 'success-message';
-        messageEl.innerHTML = `🎉 ${message} 🎉`;
+        
+        // Thêm tin nhắn khích lệ ngẫu nhiên
+        const encouragingMessages = [
+          'Tuyệt vời! 🌟', 'Giỏi quá! 🎯', 'Đúng rồi! 👏', 
+          'Xuất sắc! ⭐', 'Làm tốt lắm! 🏆', 'Thông minh quá! 🧠',
+          'Tài giỏi! 💫', 'Chính xác! ✨', 'Đỉnh cao! 🎉'
+        ];
+        const randomMessage = encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)];
+        messageEl.innerHTML = `🎉 ${randomMessage} ${message} 🎉`;
         
         NOTIFICATION_SYSTEM.addNotification(messageEl, 2500);
         
@@ -690,7 +796,14 @@
       showErrorMessage(message) {
         const messageEl = document.createElement('div');
         messageEl.className = 'error-message';
-        messageEl.innerHTML = `😔 ${message}`;
+        
+        // Thêm tin nhắn an ủi ngẫu nhiên
+        const comfortingMessages = [
+          'Không sao! Cố lên! 💪', 'Thử lại nhé! 🌈', 'Đừng buồn! 🤗',
+          'Lần sau sẽ đúng! 🌟', 'Học hỏi thêm nhé! 📚', 'Kiên trì là thành công! 🚀'
+        ];
+        const randomMessage = comfortingMessages[Math.floor(Math.random() * comfortingMessages.length)];
+        messageEl.innerHTML = `😔 ${randomMessage} ${message}`;
         
         NOTIFICATION_SYSTEM.addNotification(messageEl, 3000);
         
@@ -699,6 +812,33 @@
         
         // Phát âm thanh
         AUDIO_SYSTEM.playWrongSound();
+      },
+      
+      showAchievement(achievement) {
+        const achievementEl = document.createElement('div');
+        achievementEl.className = 'achievement';
+        achievementEl.innerHTML = `🏆 ${achievement} 🏆`;
+        achievementEl.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #ffd700, #ffed4e);
+          color: #8b4513;
+          padding: 15px 20px;
+          border-radius: 15px;
+          font-weight: bold;
+          font-size: 16px;
+          box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+          border: 3px solid #ffa500;
+          animation: achievementPop 0.6s ease-out;
+          z-index: 1000;
+        `;
+        
+        document.body.appendChild(achievementEl);
+        
+        setTimeout(() => {
+          achievementEl.remove();
+        }, 4000);
       },
       
       createHappyBaby() {
@@ -1111,6 +1251,136 @@
         color: '#8e44ad',
         questions: [] // Sẽ được tạo động từ tất cả chủ đề khác
       },
+      thoi_tiet: {
+        name: '🌤️ Thời tiết',
+        color: '#16a085',
+        questions: [
+          { img: "sunny_weather", q: "Khi trời nắng nên làm gì?", options: ["A. Ở trong nhà", "B. Đi ra ngoài chơi", "C. Ngủ", "D. Khóc"], a: "B" },
+          { img: "rainy_weather", q: "Khi trời mưa cần mang gì?", options: ["A. Ô", "B. Quạt", "C. Kính râm", "D. Áo phao"], a: "A" },
+          { img: "windy_weather", q: "Khi có gió mạnh nên làm gì?", options: ["A. Thả diều", "B. Đội mũ chặt", "C. Cởi áo", "D. Mở cửa sổ"], a: "B" },
+          { img: "cloudy_weather", q: "Khi trời âm u có mây nên mang gì?", options: ["A. Kính râm", "B. Áo khoác", "C. Quạt", "D. Kem chống nắng"], a: "B" },
+          { img: "snowy_weather", q: "Khi trời tuyết rơi cần mặc gì?", options: ["A. Áo mỏng", "B. Áo ấm", "C. Áo tắm", "D. Không cần gì"], a: "B" },
+          { img: "hot_weather", q: "Khi trời nóng nên uống gì?", options: ["A. Nước lạnh", "B. Nước nóng", "C. Không uống", "D. Cà phê"], a: "A" },
+          { img: "cold_weather", q: "Khi trời lạnh nên làm gì?", options: ["A. Tắm nước lạnh", "B. Mặc ấm", "C. Ngồi ngoài trời", "D. Ăn kem"], a: "B" },
+          { img: "storm_weather", q: "Khi có bão nên làm gì?", options: ["A. Ra ngoài", "B. Ở trong nhà", "C. Leo cây", "D. Bơi"], a: "B" },
+          { img: "rainbow_weather", q: "Cầu vồng xuất hiện khi nào?", options: ["A. Trời tối", "B. Sau mưa có nắng", "C. Ban đêm", "D. Trời tuyết"], a: "B" },
+          { img: "lightning_weather", q: "Khi có sấm sét nên làm gì?", options: ["A. Đứng dưới cây", "B. Vào nhà an toàn", "C. Cầm kim loại", "D. Ra sân"], a: "B" },
+          { img: "", q: "Mùa nào lá cây rụng?", options: ["A. Mùa xuân", "B. Mùa hè", "C. Mùa thu", "D. Mùa đông"], a: "C" },
+          { img: "", q: "Mùa nào hoa nở nhiều?", options: ["A. Mùa xuân", "B. Mùa hè", "C. Mùa thu", "D. Mùa đông"], a: "A" },
+          { img: "", q: "Mùa nào nóng nhất?", options: ["A. Mùa xuân", "B. Mùa hè", "C. Mùa thu", "D. Mùa đông"], a: "B" },
+          { img: "", q: "Mùa nào lạnh nhất?", options: ["A. Mùa xuân", "B. Mùa hè", "C. Mùa thu", "D. Mùa đông"], a: "D" },
+          { img: "", q: "Khi nào có tuyết rơi?", options: ["A. Trời nóng", "B. Trời lạnh", "C. Trời ẩm", "D. Trời khô"], a: "B" },
+          { img: "", q: "Gió thổi mạnh gọi là gì?", options: ["A. Mưa", "B. Bão", "C. Nắng", "D. Sương"], a: "B" },
+          { img: "", q: "Buổi sáng sớm có gì trên lá cây?", options: ["A. Tuyết", "B. Sương", "C. Mưa", "D. Bụi"], a: "B" },
+          { img: "", q: "Nhiệt độ đo bằng gì?", options: ["A. Độ C", "B. Lít", "C. Mét", "D. Kg"], a: "A" },
+          { img: "", q: "Mây được tạo thành từ gì?", options: ["A. Đất", "B. Nước", "C. Lửa", "D. Gió"], a: "B" },
+          { img: "", q: "Tại sao có ngày và đêm?", options: ["A. Mặt trời di chuyển", "B. Trái đất quay", "C. Mây che", "D. Không biết"], a: "B" }
+        ]
+      },
+      thuc_an: {
+        name: '🍎 Thức ăn',
+        color: '#d35400',
+        questions: [
+          { img: "apple_food", q: "Táo có màu gì?", options: ["A. Đỏ hoặc xanh", "B. Chỉ đỏ", "C. Chỉ xanh", "D. Vàng"], a: "A" },
+          { img: "banana_food", q: "Chuối có hình dạng như thế nào?", options: ["A. Tròn", "B. Vuông", "C. Cong", "D. Thẳng"], a: "C" },
+          { img: "rice_food", q: "Cơm được làm từ gì?", options: ["A. Lúa mì", "B. Gạo", "C. Ngô", "D. Khoai"], a: "B" },
+          { img: "bread_food", q: "Bánh mì được làm từ gì?", options: ["A. Gạo", "B. Lúa mì", "C. Ngô", "D. Khoai"], a: "B" },
+          { img: "milk_food", q: "Sữa có màu gì?", options: ["A. Trắng", "B. Đỏ", "C. Xanh", "D. Vàng"], a: "A" },
+          { img: "carrot_food", q: "Cà rốt có màu gì?", options: ["A. Xanh", "B. Đỏ", "C. Cam", "D. Tím"], a: "C" },
+          { img: "egg_food", q: "Trứng có hình dạng gì?", options: ["A. Vuông", "B. Oval", "C. Tam giác", "D. Sao"], a: "B" },
+          { img: "fish_food", q: "Cá sống ở đâu?", options: ["A. Trên cây", "B. Dưới nước", "C. Trong đất", "D. Trên mây"], a: "B" },
+          { img: "chicken_food", q: "Thịt gà có màu gì khi nấu chín?", options: ["A. Đỏ", "B. Trắng", "C. Xanh", "D. Đen"], a: "B" },
+          { img: "vegetables_food", q: "Rau củ có lợi cho điều gì?", options: ["A. Sức khỏe", "B. Chơi game", "C. Xem TV", "D. Ngủ"], a: "A" },
+          { img: "", q: "Bữa ăn đầu tiên trong ngày là gì?", options: ["A. Trưa", "B. Sáng", "C. Tối", "D. Đêm"], a: "B" },
+          { img: "", q: "Nên ăn mấy bữa trong 1 ngày?", options: ["A. 1 bữa", "B. 2 bữa", "C. 3 bữa", "D. 5 bữa"], a: "C" },
+          { img: "", q: "Thực phẩm nào giàu canxi?", options: ["A. Kẹo", "B. Sữa", "C. Nước ngọt", "D. Bánh"], a: "B" },
+          { img: "", q: "Trước khi ăn nên làm gì?", options: ["A. Ngủ", "B. Rửa tay", "C. Chơi", "D. Xem TV"], a: "B" },
+          { img: "", q: "Thức ăn nào tốt cho mắt?", options: ["A. Kẹo", "B. Cà rốt", "C. Bánh", "D. Nước ngọt"], a: "B" },
+          { img: "", q: "Nước chiếm bao nhiêu % cơ thể?", options: ["A. 30%", "B. 50%", "C. 70%", "D. 90%"], a: "C" },
+          { img: "", q: "Vitamin C có nhiều trong thực phẩm nào?", options: ["A. Thịt", "B. Trái cây", "C. Bánh", "D. Kẹo"], a: "B" },
+          { img: "", q: "Thực phẩm nào cho năng lượng nhanh?", options: ["A. Cơm", "B. Rau", "C. Nước", "D. Không khí"], a: "A" },
+          { img: "", q: "Ăn quá nhiều đường có tốt không?", options: ["A. Có", "B. Không", "C. Tùy ý", "D. Không biết"], a: "B" },
+          { img: "", q: "Loại thực phẩm nào nên ăn nhiều nhất?", options: ["A. Kẹo", "B. Rau củ", "C. Bánh", "D. Nước ngọt"], a: "B" }
+        ]
+      },
+      giao_thong: {
+        name: '🚗 Giao thông',
+        color: '#c0392b',
+        questions: [
+          { img: "car_transport", q: "Ô tô có mấy bánh xe?", options: ["A. 2", "B. 3", "C. 4", "D. 6"], a: "C" },
+          { img: "bus_transport", q: "Xe buýt dùng để làm gì?", options: ["A. Chở hàng", "B. Chở người", "C. Đua xe", "D. Chơi"], a: "B" },
+          { img: "train_transport", q: "Tàu hỏa chạy trên gì?", options: ["A. Đường bộ", "B. Đường ray", "C. Nước", "D. Trời"], a: "B" },
+          { img: "plane_transport", q: "Máy bay di chuyển ở đâu?", options: ["A. Dưới nước", "B. Trên không", "C. Dưới đất", "D. Trong hang"], a: "B" },
+          { img: "ship_transport", q: "Tàu thủy di chuyển ở đâu?", options: ["A. Trên bộ", "B. Trên không", "C. Trên nước", "D. Dưới đất"], a: "C" },
+          { img: "motorcycle_transport", q: "Xe máy có mấy bánh?", options: ["A. 1", "B. 2", "C. 3", "D. 4"], a: "B" },
+          { img: "bicycle_transport", q: "Xe đạp chạy bằng gì?", options: ["A. Xăng", "B. Điện", "C. Sức người", "D. Nước"], a: "C" },
+          { img: "helicopter_transport", q: "Trực thăng có cánh quạt ở đâu?", options: ["A. Dưới", "B. Trên đầu", "C. Bên hông", "D. Đuôi"], a: "B" },
+          { img: "truck_transport", q: "Xe tải dùng để làm gì?", options: ["A. Chở người", "B. Chở hàng", "C. Đua xe", "D. Du lịch"], a: "B" },
+          { img: "taxi_transport", q: "Taxi có màu gì ở Việt Nam?", options: ["A. Đỏ", "B. Xanh", "C. Vàng", "D. Tím"], a: "C" },
+          { img: "", q: "Phương tiện nào nhanh nhất?", options: ["A. Xe đạp", "B. Ô tô", "C. Máy bay", "D. Đi bộ"], a: "C" },
+          { img: "", q: "Phương tiện nào thân thiện môi trường nhất?", options: ["A. Ô tô", "B. Xe đạp", "C. Máy bay", "D. Xe máy"], a: "B" },
+          { img: "", q: "Khi đèn đỏ phải làm gì?", options: ["A. Đi", "B. Dừng", "C. Nhanh lên", "D. Quay đầu"], a: "B" },
+          { img: "", q: "Vạch kẻ đường dành cho ai?", options: ["A. Xe cộ", "B. Người đi bộ", "C. Động vật", "D. Máy bay"], a: "B" },
+          { img: "", q: "Khi ngồi ô tô nên thắt gì?", options: ["A. Dây giày", "B. Dây an toàn", "C. Dây chuyền", "D. Khăn"], a: "B" },
+          { img: "", q: "Trẻ em dưới 12 tuổi nên ngồi ghế nào?", options: ["A. Ghế trước", "B. Ghế sau", "C. Đứng", "D. Sàn xe"], a: "B" },
+          { img: "", q: "Khi đi xe máy phải đội gì?", options: ["A. Mũ lưỡi trai", "B. Mũ bảo hiểm", "C. Khăn", "D. Không cần"], a: "B" },
+          { img: "", q: "Biển báo hình tam giác có nghĩa gì?", options: ["A. Cấm", "B. Cảnh báo", "C. Chỉ dẫn", "D. Trang trí"], a: "B" },
+          { img: "", q: "Tốc độ tối đa trong khu dân cư?", options: ["A. 100km/h", "B. 50km/h", "C. 20km/h", "D. Không giới hạn"], a: "B" },
+          { img: "", q: "Ai được phép lái xe ô tô?", options: ["A. Trẻ em", "B. Người có bằng lái", "C. Ai cũng được", "D. Chỉ đàn ông"], a: "B" }
+        ]
+      },
+      the_thao: {
+        name: '⚽ Thể thao',
+        color: '#27ae60',
+        questions: [
+          { img: "football_sport", q: "Bóng đá chơi với bao nhiêu người 1 đội?", options: ["A. 10", "B. 11", "C. 12", "D. 9"], a: "B" },
+          { img: "basketball_sport", q: "Bóng rổ ném vào đâu để ghi điểm?", options: ["A. Khung thành", "B. Rổ", "C. Cầu môn", "D. Hố"], a: "B" },
+          { img: "swimming_sport", q: "Bơi lội tập luyện ở đâu?", options: ["A. Sân đất", "B. Hồ bơi", "C. Sân cỏ", "D. Phòng gym"], a: "B" },
+          { img: "running_sport", q: "Chạy bộ tốt cho cơ quan nào?", options: ["A. Mắt", "B. Tim", "C. Tai", "D. Tóc"], a: "B" },
+          { img: "tennis_sport", q: "Tennis dùng dụng cụ gì để đánh?", options: ["A. Tay", "B. Vợt", "C. Gậy", "D. Chân"], a: "B" },
+          { img: "volleyball_sport", q: "Bóng chuyền chia sân bằng gì?", options: ["A. Tường", "B. Lưới", "C. Dây", "D. Rào"], a: "B" },
+          { img: "badminton_sport", q: "Cầu lông đánh quả gì?", options: ["A. Bóng", "B. Cầu", "C. Đá", "D. Hạt"], a: "B" },
+          { img: "cycling_sport", q: "Đua xe đạp cần dụng cụ gì?", options: ["A. Xe máy", "B. Xe đạp", "C. Ô tô", "D. Máy bay"], a: "B" },
+          { img: "yoga_sport", q: "Yoga giúp cơ thể như thế nào?", options: ["A. Dẻo dai", "B. Cứng", "C. Nặng", "D. Cao"], a: "A" },
+          { img: "boxing_sport", q: "Quyền anh đeo gì ở tay?", options: ["A. Nhẫn", "B. Găng tay", "C. Đồng hồ", "D. Vòng"], a: "B" },
+          { img: "", q: "Thể thao giúp cơ thể như thế nào?", options: ["A. Yếu đi", "B. Khỏe mạnh", "C. Ốm", "D. Lười"], a: "B" },
+          { img: "", q: "Nên tập thể thao khi nào?", options: ["A. Khi ốm", "B. Mỗi ngày", "C. Không bao giờ", "D. Khi buồn"], a: "B" },
+          { img: "", q: "Trước khi tập thể thao nên làm gì?", options: ["A. Ăn no", "B. Khởi động", "C. Ngủ", "D. Xem TV"], a: "B" },
+          { img: "", q: "Sau khi tập thể thao nên làm gì?", options: ["A. Ngồi ngay", "B. Thả lỏng", "C. Ăn ngay", "D. Tắm nước lạnh"], a: "B" },
+          { img: "", q: "Khi tập thể thao nên mặc gì?", options: ["A. Vest", "B. Đồ thể thao", "C. Đồ ngủ", "D. Áo dài"], a: "B" },
+          { img: "", q: "Thể thao giúp gì cho tinh thần?", options: ["A. Buồn", "B. Vui vẻ", "C. Lo lắng", "D. Sợ hãi"], a: "B" },
+          { img: "", q: "Ai nên tập thể thao?", options: ["A. Chỉ trẻ em", "B. Mọi người", "C. Chỉ người lớn", "D. Không ai"], a: "B" },
+          { img: "", q: "Thể thao đồng đội giúp gì?", options: ["A. Ích kỷ", "B. Hợp tác", "C. Cô đơn", "D. Lười biếng"], a: "B" },
+          { img: "", q: "Olympic tổ chức mấy năm 1 lần?", options: ["A. 2 năm", "B. 4 năm", "C. 6 năm", "D. 8 năm"], a: "B" },
+          { img: "", q: "Môn thể thao vua là gì?", options: ["A. Bóng chuyền", "B. Bóng đá", "C. Tennis", "D. Bơi lội"], a: "B" }
+        ]
+      },
+      khoa_hoc: {
+        name: '🔬 Khoa học',
+        color: '#8e44ad',
+        questions: [
+          { img: "earth_science", q: "Trái đất có hình dạng gì?", options: ["A. Vuông", "B. Tròn", "C. Tam giác", "D. Phẳng"], a: "B" },
+          { img: "sun_science", q: "Mặt trời là gì?", options: ["A. Hành tinh", "B. Ngôi sao", "C. Mặt trăng", "D. Vệ tinh"], a: "B" },
+          { img: "moon_science", q: "Mặt trăng quay quanh gì?", options: ["A. Mặt trời", "B. Trái đất", "C. Sao Hỏa", "D. Sao Kim"], a: "B" },
+          { img: "water_science", q: "Nước sôi ở nhiệt độ nào?", options: ["A. 50°C", "B. 100°C", "C. 150°C", "D. 200°C"], a: "B" },
+          { img: "magnet_science", q: "Nam châm hút vật liệu gì?", options: ["A. Gỗ", "B. Kim loại", "C. Nhựa", "D. Vải"], a: "B" },
+          { img: "plant_science", q: "Cây cần gì để quang hợp?", options: ["A. Bóng tối", "B. Ánh sáng", "C. Tiếng ồn", "D. Lạnh"], a: "B" },
+          { img: "rainbow_science", q: "Cầu vồng có mấy màu chính?", options: ["A. 5", "B. 7", "C. 9", "D. 10"], a: "B" },
+          { img: "shadow_science", q: "Bóng được tạo ra khi nào?", options: ["A. Có ánh sáng", "B. Tối tăm", "C. Có gió", "D. Có mưa"], a: "A" },
+          { img: "ice_science", q: "Nước đóng băng ở nhiệt độ nào?", options: ["A. 10°C", "B. 0°C", "C. -10°C", "D. 20°C"], a: "B" },
+          { img: "air_science", q: "Không khí có thể thấy được không?", options: ["A. Có", "B. Không", "C. Đôi khi", "D. Chỉ ban đêm"], a: "B" },
+          { img: "", q: "Trái đất mất bao lâu để quay quanh mặt trời?", options: ["A. 1 tháng", "B. 1 năm", "C. 1 tuần", "D. 1 ngày"], a: "B" },
+          { img: "", q: "Điều gì làm cho vật rơi xuống?", options: ["A. Gió", "B. Trọng lực", "C. Ánh sáng", "D. Tiếng ồn"], a: "B" },
+          { img: "", q: "Cơ thể người có bao nhiêu giác quan?", options: ["A. 3", "B. 5", "C. 7", "D. 10"], a: "B" },
+          { img: "", q: "Tim đập để làm gì?", options: ["A. Tạo âm thanh", "B. Bơm máu", "C. Hô hấp", "D. Tiêu hóa"], a: "B" },
+          { img: "", q: "Phổi dùng để làm gì?", options: ["A. Tiêu hóa", "B. Hô hấp", "C. Bơm máu", "D. Suy nghĩ"], a: "B" },
+          { img: "", q: "Cơ thể người có bao nhiêu răng sữa?", options: ["A. 16", "B. 20", "C. 24", "D. 32"], a: "B" },
+          { img: "", q: "Động vật nào sống lâu nhất?", options: ["A. Chó", "B. Rùa", "C. Mèo", "D. Chuột"], a: "B" },
+          { img: "", q: "Âm thanh truyền qua gì?", options: ["A. Chân không", "B. Không khí", "C. Ánh sáng", "D. Suy nghĩ"], a: "B" },
+          { img: "", q: "Điện có màu gì?", options: ["A. Đỏ", "B. Không có màu", "C. Xanh", "D. Vàng"], a: "B" },
+          { img: "", q: "Nước mưa đến từ đâu?", options: ["A. Đất", "B. Mây", "C. Cây", "D. Đá"], a: "B" }
+        ]
+      },
       tu_duy: {
         name: '🧠 Tư duy',
         color: '#9b59b6',
@@ -1411,6 +1681,18 @@
         answered = 0;
         correctAnswers = 0;
         wrongAnswers = 0;
+        consecutiveCorrect = 0;
+        
+        // Reset thành tích cho game mới
+        achievements = {
+          firstCorrect: false,
+          threeInRow: false,
+          fiveInRow: false,
+          halfCorrect: false,
+          mostCorrect: false,
+          perfect: false
+        };
+        
         updateScore();
         
         if (topic === 'tat_ca_chu_de') {
@@ -1575,6 +1857,7 @@
           score += 10;
           answered += 1;
           correctAnswers += 1;
+          consecutiveCorrect += 1; // Tăng số câu đúng liên tiếp
           updateScore();
           
           // Hiệu ứng thành công
@@ -1601,6 +1884,7 @@
           // Cập nhật thống kê khi trả lời sai
           wrongAnswers += 1;
           answered += 1;
+          consecutiveCorrect = 0; // Reset số câu đúng liên tiếp
           updateScore();
           
           // Đánh dấu ô là đã trả lời sai và bỏ qua
@@ -1627,6 +1911,54 @@
       document.getElementById('correctCount').textContent = correctAnswers;
       document.getElementById('wrongCount').textContent = wrongAnswers;
       document.getElementById('totalQuestions').textContent = GAME_CONFIG.questionsPerGame;
+      
+      // Cập nhật và kiểm tra kỷ lục
+      STORAGE_SYSTEM.updateBestScoreDisplay();
+      if (STORAGE_SYSTEM.setBestScore(score)) {
+        // Có kỷ lục mới!
+        EFFECTS_SYSTEM.showAchievement('KỶ LỤC MỚI! 🎯🏆');
+      }
+      
+      // Kiểm tra thành tích
+      checkAchievements();
+    }
+    
+    function checkAchievements() {
+      // Thành tích đầu tiên
+      if (correctAnswers === 1 && !achievements.firstCorrect) {
+        achievements.firstCorrect = true;
+        EFFECTS_SYSTEM.showAchievement('Câu đầu tiên đúng! 🌟');
+      }
+      
+      // Liên tiếp 3 câu đúng
+      if (consecutiveCorrect >= 3 && !achievements.threeInRow) {
+        achievements.threeInRow = true;
+        EFFECTS_SYSTEM.showAchievement('3 câu liên tiếp! Tuyệt vời! 🔥');
+      }
+      
+      // Liên tiếp 5 câu đúng
+      if (consecutiveCorrect >= 5 && !achievements.fiveInRow) {
+        achievements.fiveInRow = true;
+        EFFECTS_SYSTEM.showAchievement('5 câu liên tiếp! Siêu xuất sắc! ⭐');
+      }
+      
+      // 50% câu đúng
+      if (correctAnswers >= 10 && !achievements.halfCorrect) {
+        achievements.halfCorrect = true;
+        EFFECTS_SYSTEM.showAchievement('50% câu đúng! Giỏi lắm! 🎯');
+      }
+      
+      // 75% câu đúng
+      if (correctAnswers >= 15 && !achievements.mostCorrect) {
+        achievements.mostCorrect = true;
+        EFFECTS_SYSTEM.showAchievement('75% câu đúng! Bậc thầy! 👑');
+      }
+      
+      // Perfect - 100% câu đúng
+      if (correctAnswers === 20 && wrongAnswers === 0 && !achievements.perfect) {
+        achievements.perfect = true;
+        EFFECTS_SYSTEM.showAchievement('HOÀN HẢO! 100% câu đúng! 🏆👑');
+      }
     }
 
     function closeModal() {
@@ -1660,6 +1992,9 @@
       
       // Khởi tạo hệ thống âm thanh
       AUDIO_SYSTEM.init();
+      
+      // Khởi tạo hiển thị kỷ lục
+      STORAGE_SYSTEM.updateBestScoreDisplay();
       
       // Cho phép âm thanh sau tương tác đầu tiên của người dùng
       document.addEventListener('click', function initAudio() {
